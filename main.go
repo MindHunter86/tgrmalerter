@@ -54,7 +54,7 @@ func main() {
 
 	// core bootstrap:
 	if e = core.Bootstrap(); e != nil {
-		log.Fatal().Err(e).Msg("Runtime error! Bootstrap method has been failed!")
+		log.Error().Err(e).Msg("Runtime error! Bootstrap or Destruct methods have been failed!")
 		os.Exit(1) }
 
 	// main() footer:
