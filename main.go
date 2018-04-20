@@ -1,19 +1,12 @@
 package main
 
-import (
-	"os"
-	"flag"
-
-	"mservice1/core"
-//	"mservice1/app"
-
-	"github.com/rs/zerolog"
-)
-
+import "os"
+import "flag"
+import "mservice1/core"
+import "github.com/rs/zerolog"
 
 var parsedConfigFile string
 const defaultConfigFile string = "./config.yml"
-
 
 func init() {
 	flag.StringVar(&parsedConfigFile, "c", defaultConfigFile, "path to configuration file (default: ./config.yml)")
