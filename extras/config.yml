@@ -1,0 +1,9 @@
+---
+base:
+  log_level: 'debug'
+  http:
+    listen: '167.114.232.119:8080' # IP:PORT
+    host: 'beta.mh00.net:8080' # Hostname
+    read_timeout: 500 # milliseconds
+    write_timeout: 500 # milliseconds
+...

@@ -9,6 +9,12 @@ import (
 type CoreConfig struct {
 	Base struct {
 		Log_Level string
+		Http struct {
+			Listen string
+			Host string
+			Read_Timeout int
+			Write_Timeout int
+		}
 	}
 }
 

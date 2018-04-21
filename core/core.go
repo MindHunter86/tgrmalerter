@@ -14,6 +14,8 @@ import (
 
 
 type Core struct {
+	http *httpService
+
 	log *zerolog.Logger
 	cfg *CoreConfig
 
@@ -26,7 +28,13 @@ func (m *Core) SetLogger(l *zerolog.Logger) *Core { m.log = l; return m }
 func (m *Core) SetConfig(c *CoreConfig) *Core { m.cfg = c; return m }
 func (m *Core) Construct() (*Core, error) {
 	var e error
+
+
+	// application configuration:
 	m.app,e = new(app.App).SetLogger(m.log).Construct(); if e != nil { return nil,e }
+
+	// internal services configuration:
+	m.http = new(httpService).setConfig(m.cfg).setLogger(m.log).construct(m.app.NewHttpRouter())
 
 	return m,nil
 }
@@ -36,16 +44,21 @@ func (m *Core) Bootstrap() error {
 	var kernSignal = make(chan os.Signal)
 	signal.Notify(kernSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGQUIT)
 
-	// application bootstrap:
-	var appErrPipe = make(chan error, 1)
-	go func(errPipe chan error, wg sync.WaitGroup) {
-		wg.Add(1)
-		errPipe <- m.app.Bootstrap()
-		wg.Done()
-	}(appErrPipe, m.appWg)
+	// define global error variables:
+	var e error
+	var epipe = make(chan error)
 
-	// define global error variable:
-	var e error = nil
+	// http service bootstrap:
+	go func(e chan error, wg sync.WaitGroup) {
+		wg.Add(1); defer wg.Done()
+		e <- m.http.bootstrap()
+	}(epipe, m.appWg)
+
+	// application bootstrap:
+	go func(e chan error, wg sync.WaitGroup) {
+		wg.Add(1); defer wg.Done()
+		// TODO: epipe <- m.app.Bootstrap()
+	}(epipe, m.appWg)
 
 	// main application event loop:
 LOOP:
@@ -58,7 +71,7 @@ LOOP:
 			break LOOP
 
 		// application error catcher:
-		case e = <-appErrPipe:
+		case e = <-epipe:
 			if e != nil { m.log.Error().Err(e).Msg("Runtime error! Abnormal application closing!") }
 			break LOOP
 			// TODO: automatic application re-bootstrap
@@ -70,12 +83,7 @@ LOOP:
 }
 
 func (m *Core) Destruct(e *error) error {
-	// This comment contains "bad english", be careful with its reading!
-	//
-	// method get defined error variable, with or without app.Bootstrap error.
-	// if m.app.Destruct() has errors, e variable would be rewritten
-	// else in main() we return app.Bootstrap() error (if it was) or nil
-	*e = m.app.Destruct()
-	m.appWg.Wait()
-	return *e
+	m.http.destruct()
+	m.app.Destruct()
+	m.appWg.Wait(); return *e
 }

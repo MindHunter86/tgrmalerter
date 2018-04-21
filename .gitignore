@@ -1,5 +1,6 @@
 # exclude golang binary files:
 extras/bin/*
+./mservice1
 
 # exclude service configuration files:
 extras/*yml.
