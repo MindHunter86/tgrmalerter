@@ -6,4 +6,12 @@ base:
     host: 'beta.mh00.net:8080' # Hostname
     read_timeout: 500 # milliseconds
     write_timeout: 500 # milliseconds
+  mysql:
+    sql_debug: true
+    host: '127.0.0.1:23306'
+    username: 'mservice1'
+    password: 'WmhnLWKxFZ3eTbDUkSVXXhNqyvJys4Vu'
+    database: 'mservice1'
+    migrations_path: 'extras/migrations'
+    
 ...

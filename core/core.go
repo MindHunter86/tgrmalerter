@@ -15,6 +15,7 @@ import (
 
 type Core struct {
 	http *httpService
+	sql sqlDriver
 
 	log *zerolog.Logger
 	cfg *CoreConfig
@@ -33,8 +34,9 @@ func (m *Core) Construct() (*Core, error) {
 	// application configuration:
 	m.app,e = new(app.App).SetLogger(m.log).Construct(); if e != nil { return nil,e }
 
-	// internal services configuration:
+	// internal resources configuration:
 	m.http = new(httpService).setConfig(m.cfg).setLogger(m.log).construct(m.app.NewHttpRouter())
+	m.sql,e = new(mysqlDriver).setConfig(m.cfg).construct(); if e != nil { return nil,e }
 
 	return m,nil
 }
@@ -83,7 +85,12 @@ LOOP:
 }
 
 func (m *Core) Destruct(e *error) error {
-	m.http.destruct()
+	// application destruct:
 	m.app.Destruct()
+
+	// internal resources destruct:
+	m.http.destruct()
+	m.sql.destruct()
+
 	m.appWg.Wait(); return *e
 }

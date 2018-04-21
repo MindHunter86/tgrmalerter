@@ -10,10 +10,14 @@ type CoreConfig struct {
 	Base struct {
 		Log_Level string
 		Http struct {
-			Listen string
+			Listen, Host string
+			Read_Timeout, Write_Timeout int
+		}
+		Mysql struct {
 			Host string
-			Read_Timeout int
-			Write_Timeout int
+			Username, Password, Database string
+			Migrations_Path string
+			Sql_Debug bool
 		}
 	}
 }
