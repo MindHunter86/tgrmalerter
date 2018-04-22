@@ -1,5 +1,3 @@
-# mservice1
+# TgrmAlrter v2
 
-Microservice template with golang
-
-%)
+HTTP API for sending messages in telegram
