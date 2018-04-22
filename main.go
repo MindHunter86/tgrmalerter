@@ -3,6 +3,7 @@ package main
 import "os"
 import "flag"
 import "mservice1/core"
+import "mservice1/core/config"
 import "github.com/rs/zerolog"
 
 var parsedConfigFile string
@@ -26,7 +27,7 @@ func main() {
 	if _,e := os.Stat(parsedConfigFile); e != nil {
 		log.Fatal().Err(e).Msg("Could not stat configuration file!")
 		os.Exit(1) }
-	cfg,e := new(core.CoreConfig).Parse(parsedConfigFile); if e != nil {
+	cfg,e := new(config.CoreConfig).Parse(parsedConfigFile); if e != nil {
 		log.Fatal().Err(e).Msg("Could not successfully complete ( /a/the) configuration file parsing!")
 		os.Exit(1) }
 

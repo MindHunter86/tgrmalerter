@@ -8,17 +8,20 @@ import (
 	"syscall"
 
 	"mservice1/app"
+	"mservice1/core/config"
+	"mservice1/core/sql"
+	"mservice1/core/http"
 
 	"github.com/rs/zerolog"
 )
 
 
 type Core struct {
-	http *httpService
-	sql sqlDriver
+	http *http.HttpService
+	sql sql.SqlDriver
 
 	log *zerolog.Logger
-	cfg *CoreConfig
+	cfg *config.CoreConfig
 
 	appWg sync.WaitGroup
 	app *app.App
@@ -26,7 +29,7 @@ type Core struct {
 
 
 func (m *Core) SetLogger(l *zerolog.Logger) *Core { m.log = l; return m }
-func (m *Core) SetConfig(c *CoreConfig) *Core { m.cfg = c; return m }
+func (m *Core) SetConfig(c *config.CoreConfig) *Core { m.cfg = c; return m }
 func (m *Core) Construct() (*Core, error) {
 	var e error
 
@@ -35,8 +38,8 @@ func (m *Core) Construct() (*Core, error) {
 	m.app,e = new(app.App).SetLogger(m.log).Construct(); if e != nil { return nil,e }
 
 	// internal resources configuration:
-	m.http = new(httpService).setConfig(m.cfg).setLogger(m.log).construct(m.app.NewHttpRouter())
-	m.sql,e = new(mysqlDriver).setConfig(m.cfg).construct(); if e != nil { return nil,e }
+	m.http = new(http.HttpService).SetConfig(m.cfg).SetLogger(m.log).Construct(m.app.NewHttpRouter())
+	m.sql,e = new(sql.MysqlDriver).SetConfig(m.cfg).Construct(); if e != nil { return nil,e }
 
 	return m,nil
 }
@@ -53,7 +56,7 @@ func (m *Core) Bootstrap() error {
 	// http service bootstrap:
 	go func(e chan error, wg sync.WaitGroup) {
 		wg.Add(1); defer wg.Done()
-		e <- m.http.bootstrap()
+		e <- m.http.Bootstrap()
 	}(epipe, m.appWg)
 
 	// application bootstrap:
@@ -89,8 +92,8 @@ func (m *Core) Destruct(e *error) error {
 	m.app.Destruct()
 
 	// internal resources destruct:
-	m.http.destruct()
-	m.sql.destruct()
+	m.http.Destruct()
+	m.sql.Destruct()
 
 	m.appWg.Wait(); return *e
 }

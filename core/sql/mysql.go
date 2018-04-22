@@ -1,7 +1,9 @@
-package core
+package sql
 
 import "time"
 import "database/sql"
+
+import "mservice1/core/config"
 
 import _ "github.com/go-sql-driver/mysql"
 import mysql "github.com/go-sql-driver/mysql"
@@ -11,26 +13,20 @@ import mysql_migrate "github.com/mattes/migrate/database/mysql"
 import _ "github.com/mattes/migrate/source/file"
 
 
-type sqlDriver interface {
-	getRawDBSession() *sql.DB
-
-	construct() (sqlDriver, error)
-	destruct() error
-}
-
-type mysqlDriver struct {
-	conf *CoreConfig
+type MysqlDriver struct {
+	conf *config.CoreConfig
 
 	sqlSession *sql.DB
 	sqlMigration *migrate.Migrate
 }
 
 
-func (m *mysqlDriver) setConfig(c *CoreConfig) *mysqlDriver { m.conf = c; return m }
-func (m *mysqlDriver) getRawDBSession() *sql.DB { return m.sqlSession }
-func (m *mysqlDriver) destruct() error { return m.sqlSession.Close() }
+// sql package - Public API:
+func (m *MysqlDriver) SetConfig(c *config.CoreConfig) SqlDriver { m.conf = c; return m }
+func (m *MysqlDriver) GetRawDBSession() *sql.DB { return m.sqlSession }
+func (m *MysqlDriver) Destruct() error { return m.sqlSession.Close() }
 
-func (m *mysqlDriver) construct() (sqlDriver, error) {
+func (m *MysqlDriver) Construct() (SqlDriver, error) {
 	if sess,e := sql.Open("mysql", m.connConfigure().FormatDSN()); e == nil {
 		defer sess.Close()
 
@@ -40,13 +36,15 @@ func (m *mysqlDriver) construct() (sqlDriver, error) {
 	return m,m.connCreate()
 }
 
-func (m *mysqlDriver) connCreate() error {
+
+// sql package - Internal API:
+func (m *MysqlDriver) connCreate() error {
 	var e error
 	if m.sqlSession,e = sql.Open("mysql", m.connConfigure().FormatDSN()); e != nil { return e }
 	return m.sqlSession.Ping()
 }
 
-func (m *mysqlDriver) connConfigure() *mysql.Config {
+func (m *MysqlDriver) connConfigure() *mysql.Config {
 	// https://github.com/go-sql-driver/mysql - mysql lib configuration
 
 	location,e := time.LoadLocation("Europe/Moscow"); if e != nil { location = time.UTC }
@@ -78,7 +76,7 @@ func (m *mysqlDriver) connConfigure() *mysql.Config {
 		Strict: m.conf.Base.Mysql.Sql_Debug }
 }
 
-func (m *mysqlDriver) migrationsRun(sess *sql.DB) error {
+func (m *MysqlDriver) migrationsRun(sess *sql.DB) error {
 	driver,e := mysql_migrate.WithInstance(sess, &mysql_migrate.Config{}); if e != nil { return e }
 	if m.sqlMigration,e = migrate.NewWithDatabaseInstance("file://" + m.conf.Base.Mysql.Migrations_Path, "mysql", driver); e != nil { return e }
 

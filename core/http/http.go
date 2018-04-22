@@ -1,8 +1,10 @@
-package core
+package http
 
 import "sync"
 import "time"
 import "net/http"
+
+import "mservice1/core/config"
 
 import "github.com/gorilla/mux"
 import "github.com/justinas/alice"
@@ -11,19 +13,21 @@ import "github.com/rs/zerolog"
 import "github.com/rs/zerolog/hlog"
 
 
-type httpService struct {
+type HttpService struct {
 	log *zerolog.Logger
-	conf *CoreConfig
+	conf *config.CoreConfig
 
 	httpServer *http.Server
 
 	done chan struct{}
 }
 
-func (m *httpService) setConfig(c *CoreConfig) *httpService { m.conf = c; return m }
-func (m *httpService) setLogger(l *zerolog.Logger) *httpService { m.log = l; return m }
 
-func (m *httpService) construct(router *mux.Router) *httpService {
+// http package - Public API:
+func (m *HttpService) SetConfig(c *config.CoreConfig) *HttpService { m.conf = c; return m }
+func (m *HttpService) SetLogger(l *zerolog.Logger) *HttpService { m.log = l; return m }
+
+func (m *HttpService) Construct(router *mux.Router) *HttpService {
 	m.done = make(chan struct{}, 1)
 
 	var chain = alice.New().Append(
@@ -50,7 +54,7 @@ func (m *httpService) construct(router *mux.Router) *httpService {
 	return m
 }
 
-func (m *httpService) bootstrap() error {
+func (m *HttpService) Bootstrap() error {
 	var e error
 	var wg sync.WaitGroup
 
@@ -72,12 +76,14 @@ LOOP:
 	return e
 }
 
-func (m *httpService) destruct() error {
+func (m *HttpService) Destruct() error {
 	close(m.done)
 	return nil
 }
 
-func (m *httpService) httpServe(wg *sync.WaitGroup, e *error) {
+
+// http package - Internal API:
+func (m *HttpService) httpServe(wg *sync.WaitGroup, e *error) {
 	wg.Add(1); defer wg.Done()
 	m.log.Debug().Msg("http.ListenAndServe executing ...")
 	if *e = m.httpServer.ListenAndServe(); *e != nil && *e != http.ErrServerClosed {
