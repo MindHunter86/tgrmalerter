@@ -1,7 +1,7 @@
 package sql
 
 import "database/sql"
-import "mservice1/core/config"
+import "tgrmalerter/core/config"
 
 
 type SqlDriver interface {

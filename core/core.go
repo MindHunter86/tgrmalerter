@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"mservice1/app"
-	"mservice1/core/config"
-	"mservice1/core/sql"
-	"mservice1/core/http"
+	"tgrmalerter/app"
+	"tgrmalerter/core/config"
+	"tgrmalerter/core/sql"
+	"tgrmalerter/core/http"
 
 	"github.com/rs/zerolog"
 )

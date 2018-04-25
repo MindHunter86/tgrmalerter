@@ -4,7 +4,7 @@ import "sync"
 import "time"
 import "net/http"
 
-import "mservice1/core/config"
+import "tgrmalerter/core/config"
 
 import "github.com/gorilla/mux"
 import "github.com/justinas/alice"

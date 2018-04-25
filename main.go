@@ -2,8 +2,8 @@ package main
 
 import "os"
 import "flag"
-import "mservice1/core"
-import "mservice1/core/config"
+import "tgrmalerter/core"
+import "tgrmalerter/core/config"
 import "github.com/rs/zerolog"
 
 var parsedConfigFile string
