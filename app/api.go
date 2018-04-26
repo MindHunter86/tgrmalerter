@@ -9,43 +9,43 @@ import "github.com/gorilla/context"
 // JSON response structs:
 // Recomendations are taken from jsonapi.org:
 type apiResponse struct {
-	Data *responseData					`json:data,omitempty`
-	Errors []*responseError			`json:errors,omitempty`
+	Data *responseData					`json:"data,omitempty"`
+	Errors []*responseError			`json:"errors,omitempty"`
 }
 type responseData struct {
-	Type string									`json:type,omitempty`
-	Id int											`json:id,omitempty`
-	Attributes *dataAttributes	`json:attributes,omitempty`
-	Links *dataLinks						`json:links,omitempty`
+	Type string									`json:"type,omitempty"`
+	Id int											`json:"id,omitempty"`
+	Attributes *dataAttributes	`json:"attributes,omitempty"`
+	Links *dataLinks						`json:"links,omitempty"`
 }
 type dataAttributes struct {
-	Phone string								`json:phone,omitempty`
-	Alert string								`json:alert,omitempty`
-	Status string								`json:status,omitempty`
+	Phone string								`json:"phone,omitempty"`
+	Alert string								`json:"alert,omitempty"`
+	Status string								`json:"status,omitempty"`
 }
 type dataLinks struct {
-	Self string									`json:self,omitempty`
+	Self string									`json:"self,omitempty"`
 }
 type responseError struct {
-	Id string										`json:id,omitempty`
-	Links *dataLinks						`json:links,omitempty`
-	Code int										`json:code,omitempty`
-	Status int									`json:status,omitempty`
-	Title string								`json:title,omitempty`
-	Detail string								`json:detail,omitempty`
-	Source *errorSource					`json:source,omitempty`
+	Id string										`json:"id,omitempty"`
+	Links *dataLinks						`json:"links,omitempty"`
+	Code int										`json:"code,omitempty"`
+	Status int									`json:"status,omitempty"`
+	Title string								`json:"title,omitempty"`
+	Detail string								`json:"detail,omitempty"`
+	Source *errorSource					`json:"source,omitempty"`
 }
 type errorSource struct {
-	Parameter string						`json:parameter,omitempty`
+	Parameter string						`json:"parameter,omitempty"`
 }
 
 // JSON request structs:
 type apiPostRequest struct {
-	Data *requestData						`json:data,omitempty`
+	Data *requestData						`json:"data,omitempty"`
 }
 type requestData struct {
-	Type string									`json:type,omitempty`
-	Attributes *dataAttributes	`json:attributes,omitempty`
+	Type string									`json:"type,omitempty"`
+	Attributes *dataAttributes	`json:"attributes,omitempty"`
 }
 
 // request struct:
