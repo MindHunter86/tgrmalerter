@@ -3,7 +3,7 @@ package sql
 import "time"
 import "database/sql"
 
-import "tgrmalerter/core/config"
+import "mailru/tgrmalerter/core/config"
 
 import _ "github.com/go-sql-driver/mysql"
 import mysql "github.com/go-sql-driver/mysql"

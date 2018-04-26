@@ -1,7 +1,7 @@
 package sql
 
 import "database/sql"
-import "tgrmalerter/core/config"
+import "mailru/tgrmalerter/core/config"
 
 
 type SqlDriver interface {

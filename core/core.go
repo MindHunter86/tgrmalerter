@@ -33,13 +33,12 @@ func (m *Core) SetConfig(c *config.CoreConfig) *Core { m.cfg = c; return m }
 func (m *Core) Construct() (*Core, error) {
 	var e error
 
-
 	// application configuration:
 	m.app,e = new(app.App).SetLogger(m.log).Construct(); if e != nil { return nil,e }
 
 	// internal resources configuration:
-	m.http = new(http.HttpService).SetConfig(m.cfg).SetLogger(m.log).Construct(m.app.NewHttpRouter())
 	m.sql,e = new(sql.MysqlDriver).SetConfig(m.cfg).Construct(); if e != nil { return nil,e }
+	m.http = new(http.HttpService).SetConfig(m.cfg).SetLogger(m.log).Construct(m.app.NewApplicationApi(m.sql))
 
 	return m,nil
 }
