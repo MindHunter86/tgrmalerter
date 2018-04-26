@@ -13,5 +13,4 @@ base:
     password: 'WmhnLWKxFZ3eTbDUkSVXXhNqyvJys4Vu'
     database: 'mservice1'
     migrations_path: 'extras/migrations'
-    
 ...

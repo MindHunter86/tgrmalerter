@@ -78,7 +78,10 @@ func (m *api) getMuxRouter() *mux.Router {
 
 	// TODO: add status && version
 //	r.HandleFunc("/", m.httpRootHandler).Methods("GET")
-	r.HandleFunc("/v1/alerts/{id:[0-9]+}", htAlerts.Get).Methods("GET")
+
+	// XXX: DEBUG ONLY!!!
+	// r.HandleFunc("/v1/alerts/{id:[0-9]+}", htAlerts.Get).Methods("GET")
+	r.HandleFunc("/v1/alerts/{id:[0-9]+}", htAlerts.Create).Methods("GET")
 	r.HandleFunc("/v1/alerts/{id:[0-9]+}", htAlerts.Create).Methods("POST")
 
 	return r
@@ -89,7 +92,7 @@ func (m *alertsHandler) Get(w http.ResponseWriter, r *http.Request) {}
 func (m *alertsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// TODO : PHONE MUST BE AS URL PARAM
 	//var mv = mux.Vars(r)
-	var errs = new(apiErrors)
+	var errs = new(apiErrors).setApiPointer(m.ap)
 
 	var req *apiPostRequest
 	reqBody,e := ioutil.ReadAll(r.Body); if !m.ap.errorHandler(w,e,errs) { return }

@@ -34,7 +34,7 @@ func (m *Core) Construct() (*Core, error) {
 	var e error
 
 	// application configuration:
-	m.app,e = new(app.App).SetLogger(m.log).Construct(); if e != nil { return nil,e }
+	m.app,e = new(app.App).SetLogger(m.log).SetConfig(m.cfg).Construct(); if e != nil { return nil,e }
 
 	// internal resources configuration:
 	m.sql,e = new(sql.MysqlDriver).SetConfig(m.cfg).Construct(); if e != nil { return nil,e }

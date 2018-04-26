@@ -64,6 +64,7 @@ type apiErrors struct {
 	errors []*apiError
 }
 
+func (m *apiErrors) setApiPointer(a *api) *apiErrors { m.ap = a; return m }
 func (m *apiErrors) setRequestLink(l string) *apiErrors { m.requestLink = l; return m }
 func (m *apiErrors) setRequestId(i string) *apiErrors { m.requestId = i; return m }
 
@@ -100,7 +101,9 @@ func (m *apiErrors) logAndSave() *apiErrors {
 	m.ap.log.Debug().Msg("Saving error reports")
 
 	stmt,e := m.ap.sqldb.Prepare("INSERT INTO errors VALUES (?,?,?,?,?,?,?,?)"); if e != nil {
-		m.ap.log.Error().Err(e).Msg("Could not prepare DB statement!")	}
+		m.ap.log.Error().Err(e).Msg("Could not prepare DB statement!")
+		m.newError(errInternalSqlError)
+		return m }
 	defer stmt.Close()
 
 	for _,v := range m.errors {

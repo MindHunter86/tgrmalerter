@@ -44,8 +44,7 @@ func (m *HttpService) Construct(router *mux.Router) *HttpService {
 	}))
 
 	m.httpServer = &http.Server{
-		// TODO Handler: chain.Then(router),
-		Handler: chain.Then(nil),
+		Handler: chain.Then(router),
 		Addr: m.conf.Base.Http.Listen,
 		ReadTimeout: time.Duration(m.conf.Base.Http.Read_Timeout) * time.Millisecond,
 		WriteTimeout: time.Duration(m.conf.Base.Http.Write_Timeout) * time.Millisecond }
