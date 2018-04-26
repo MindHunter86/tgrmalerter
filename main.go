@@ -2,8 +2,8 @@ package main
 
 import "os"
 import "flag"
-import "tgrmalerter/core"
-import "tgrmalerter/core/config"
+import "mailru/tgrmalerter/core"
+import "mailru/tgrmalerter/core/config"
 import "github.com/rs/zerolog"
 
 var parsedConfigFile string

@@ -7,10 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"tgrmalerter/app"
-	"tgrmalerter/core/config"
-	"tgrmalerter/core/sql"
-	"tgrmalerter/core/http"
+	"mailru/tgrmalerter/app"
+	"mailru/tgrmalerter/core/config"
+	"mailru/tgrmalerter/core/sql"
+	"mailru/tgrmalerter/core/http"
 
 	"github.com/rs/zerolog"
 )
