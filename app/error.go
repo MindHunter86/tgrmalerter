@@ -49,7 +49,7 @@ type apiError struct {
 func (m *apiError) setError(e uint8) *apiError { m.e = e; return m }
 func (m *apiError) setParameter(p string) *apiError { m.srcParam = p; return m }
 func (m *apiError) getId() string {
-	if len(m.eId) == 0 { m.eId = uuid.NewV1().String() }
+	if len(m.eId) == 0 { m.eId = uuid.NewV4().String() }
 	return m.eId
 }
 
