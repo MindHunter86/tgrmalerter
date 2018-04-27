@@ -46,13 +46,15 @@ func getUserByPhone(r *http.Request) *modelUser {
 	defer rows.Close()
 
 	for rows.Next() {
-		if reg := false; rows.Scan(&reg) != nil && reg {
+		var reg bool
+		if rows.Scan(&reg) != nil {
+			ap.log.Error().Err(e).Msg("Something went wrong! Could not scan the result from DB!"); return nil }
+		if reg {
 			ap.log.Debug().Str("phone", phone).Msg("User has been successfully found!")
 			return &modelUser{
 				ap: ap,
 				isRegistered: reg,
-				phone: phone }
-		}
+				phone: phone }}
 	}
 
 	errs.newError(errAlertsCreatePhoneNotFound).setParameter("phone")
