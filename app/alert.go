@@ -19,17 +19,17 @@ func getUserByPhone(r *http.Request) *modelUser {
 	var phone = context.Get(r, "param_phone").(string)
 
 	// check phone length:
-	if ph_len := len(phone); ph_len <= 10 && ph_len >= 12 {
+	if ph_len := len(phone); ph_len < 10 || ph_len > 12 {
 		errs.newError(errAlertsCreatePhoneLength)
 		return nil }
 
 	// check phone format and shorten up to 10 digits:
-	switch phone[0:1] {
+	switch phone[0:2] {
 	case "+7":
-		// TODO: fix error
-//		if phone[2] != byte("9") { errs.newError(errAlertsCreatePhoneFormat); return nil }
+		if phone[2:3] != "9" { errs.newError(errAlertsCreatePhoneFormat); return nil }
 		phone = phone[2:]
-	case "89": phone = phone[1:]
+	case "89":
+		phone = phone[1:]
 	default: errs.newError(errAlertsCreatePhoneFormat); return nil }
 
 	// check phone for availability:

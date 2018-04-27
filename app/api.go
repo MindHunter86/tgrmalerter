@@ -1,5 +1,6 @@
 package app
 
+import "strings"
 import "io/ioutil"
 import "net/http"
 import "encoding/json"
@@ -70,11 +71,10 @@ func (m *httpRequest) create(a *api) *httpRequest {
 func (m *httpRequest) save(r *http.Request) error {
 	m.ap.log.Debug().Msg("Saving request data")
 
-	stmt,e := m.ap.sqldb.Prepare("INSERT INTO requests VALUES (?,?,?,?,?,?,?)"); if e != nil { return e }
+	stmt,e := m.ap.sqldb.Prepare("INSERT INTO requests (id,srcip,method,size,url,status,user_agent) VALUES (?,?,?,?,?,?,?)"); if e != nil { return e }
 	defer stmt.Close()
 
-	if _,e = stmt.Exec(m.id, r.RemoteAddr, r.Method, r.ContentLength, r.RequestURI, 0, r.UserAgent()); e != nil { return e }
-
+	if _,e = stmt.Exec(m.id, strings.Split(r.RemoteAddr, ":")[0], r.Method, r.ContentLength, r.RequestURI, 0, r.UserAgent()); e != nil { return e }
 	return nil
 }
 
@@ -98,14 +98,14 @@ func (m *api) getMuxRouter() *mux.Router {
 	var r = mux.NewRouter()
 
 	r.Host(m.conf.Base.Http.Host)
-	r.Headers("Content-Type", "application/json")
-
+	r.Headers("Content-Type", "application/json",
+						"X-Requested-With", "XMLHttpRequest")
 	r.Use(m.httpMiddlewareRequestLog)
-	r.Use(m.httpMiddlewareRequestCreate)
 
-	r.HandleFunc("/v1", m.httpHandlerRootV1).Methods("GET")
-	r.HandleFunc("/v1/alerts/{id:[0-9]+}", m.httpHandlerAlertsGet).Methods("GET")
-	r.HandleFunc("/v1/alerts/{id:[0-9]+}", m.httpHandlerAlertsCreate).Methods("POST")
+	s := r.PathPrefix("/v1").Subrouter()
+	s.Use(m.httpMiddlewareAPIAuthentication)
+	s.HandleFunc("/alerts", m.httpHandlerAlertsCreate).Methods("POST")
+	s.HandleFunc("/alerts/{id:[0-9]+}", m.httpHandlerAlertsGet).Methods("GET")
 
 	return r
 }
@@ -129,15 +129,13 @@ func (m *api) httpMiddlewareRequestLog(h http.Handler) http.Handler {
 		htRequest.saveStatus(errs.requestStatus)
 	})
 }
-func (m *api) httpMiddlewareRequestCreate(h http.Handler) http.Handler {
+
+func (m *api) httpMiddlewareAPIAuthentication(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.log.Debug().Msg("httpMiddlewareRequestCreate")
-
 		h.ServeHTTP(w,r)
-
-		m.log.Debug().Msg("httpMiddlewareRequestCreate2")
 	})
 }
+
 
 func (m *api) httpHandlerRootV1(w http.ResponseWriter, r *http.Request) {}
 func (m *api) httpHandlerAlertsGet(w http.ResponseWriter, r *http.Request) {}
@@ -148,14 +146,15 @@ func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 
 	var req *apiPostRequest
 	reqBody,e := ioutil.ReadAll(r.Body); if !m.errorHandler(w,e,errs) { return }
-	e = json.Unmarshal(reqBody, req); if !m.errorHandler(w,e,errs) { return }
+	m.log.Debug().Bytes("request_body", reqBody).Msg("Request body debug")
+	e = json.Unmarshal(reqBody, &req); if !m.errorHandler(w,e,errs) { return }
 
 	context.Set(r, "internal_api", m)
 	context.Set(r, "param_phone", req.Data.Attributes.Phone)
 	context.Set(r, "param_alert", req.Data.Attributes.Alert)
 
-	var rspPayload *apiResponse
-	if usr := getUserByPhone(r); usr == nil {
+	var rspPayload = new(apiResponse)
+	if usr := getUserByPhone(r); usr != nil {
 		rspPayload.Data = usr.putAlertInQueue() }
 
 	var status int
