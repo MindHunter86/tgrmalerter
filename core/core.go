@@ -11,6 +11,7 @@ import (
 	"mailru/tgrmalerter/core/config"
 	"mailru/tgrmalerter/core/sql"
 	"mailru/tgrmalerter/core/http"
+	"mailru/tgrmalerter/core/tgrm"
 
 	"github.com/rs/zerolog"
 )
@@ -19,6 +20,7 @@ import (
 type Core struct {
 	http *http.HttpService
 	sql sql.SqlDriver
+	tgrm *tgrm.TgrmService
 
 	log *zerolog.Logger
 	cfg *config.CoreConfig
@@ -34,11 +36,16 @@ func (m *Core) Construct() (*Core, error) {
 	var e error
 
 	// application configuration:
-	m.app,e = new(app.App).SetLogger(m.log).SetConfig(m.cfg).Construct(); if e != nil { return nil,e }
+	if m.app,e = new(app.App).SetLogger(m.log).SetConfig(m.cfg).Construct(); e != nil { return nil,e }
 
 	// internal resources configuration:
-	m.sql,e = new(sql.MysqlDriver).SetConfig(m.cfg).Construct(); if e != nil { return nil,e }
-	m.http = new(http.HttpService).SetConfig(m.cfg).SetLogger(m.log).Construct(m.app.NewApplicationApi(m.sql))
+	if m.sql,e = new(sql.MysqlDriver).SetConfig(m.cfg).Construct(); e != nil { return nil,e }
+	m.app.SetSqlDriver(m.sql)
+
+	if m.tgrm,e = new(tgrm.TgrmService).SetConfig(m.cfg).SetApp(m.app).Construct(); e != nil { return nil,e }
+	m.app.SetTBot(m.tgrm.GetTBot())
+
+	m.http = new(http.HttpService).SetConfig(m.cfg).SetLogger(m.log).Construct(m.app.NewApplicationApi())
 
 	return m,nil
 }
@@ -56,6 +63,12 @@ func (m *Core) Bootstrap() error {
 	go func(e chan error, wg sync.WaitGroup) {
 		wg.Add(1); defer wg.Done()
 		e <- m.http.Bootstrap()
+	}(epipe, m.appWg)
+
+	// tgrm service bootstrap:
+	go func(e chan error, wg sync.WaitGroup) {
+		wg.Add(1); defer wg.Done()
+		e <- m.tgrm.Bootstrap()
 	}(epipe, m.appWg)
 
 	// application bootstrap:
@@ -93,6 +106,7 @@ func (m *Core) Destruct(e *error) error {
 	// internal resources destruct:
 	m.http.Destruct()
 	m.sql.Destruct()
+	m.tgrm.Destruct()
 
 	m.appWg.Wait(); return *e
 }

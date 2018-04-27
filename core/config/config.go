@@ -22,6 +22,11 @@ type CoreConfig struct {
 		Api struct {
 			Sign_Secret string
 		}
+		Telegram struct {
+			Tgrm_Debug bool
+			Token string
+			Timeout int
+		}
 	}
 }
 
