@@ -13,4 +13,6 @@ base:
     password: 'WmhnLWKxFZ3eTbDUkSVXXhNqyvJys4Vu'
     database: 'tgrmAlerter'
     migrations_path: 'extras/migrations'
+  api:
+    sign_secret: "VQJSBIOZrow8Tq5k7OAgytjqmNAckjaGpXk1rzmGRx3i3T4L7aInVNwQMN4k6l9u"
 ...

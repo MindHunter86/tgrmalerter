@@ -13,6 +13,7 @@ var (
 const (
 	errInternalCommonError = uint8(iota)
 	errInternalSqlError
+	errAlertsNotAuthorized
 	errAlertsCreatePhoneLength
 	errAlertsCreatePhoneFormat
 	errAlertsCreatePhoneNotFound
@@ -20,6 +21,7 @@ const (
 var apiErrorsTitle = map[uint8]string{
 	errInternalCommonError: "Internal error",
 	errInternalSqlError: "Internal database error",
+	errAlertsNotAuthorized: "Authorization failed",
 	errAlertsCreatePhoneLength: "Abnormal phone parameter length",
 	errAlertsCreatePhoneFormat: "Abnormal phone parameter format",
 	errAlertsCreatePhoneNotFound: "Phone not found",
@@ -27,6 +29,7 @@ var apiErrorsTitle = map[uint8]string{
 var apiErrorsDetail = map[uint8]string{
 	errInternalCommonError: "The current request could not processed! Please, try again later!",
 	errInternalSqlError: "The current request could not processed due to a database error. Please, try again later!",
+	errAlertsNotAuthorized: "The current request must be signed with a special key for correct authorization! Please, check your credentials!",
 	errAlertsCreatePhoneLength: "The phone must be between 10 and 12 characters in length!",
 	errAlertsCreatePhoneFormat: "The phone should star with +79 or 89 digits!",
 	errAlertsCreatePhoneNotFound: "The requested phone was not found in the database!",
@@ -34,6 +37,7 @@ var apiErrorsDetail = map[uint8]string{
 var apiErrorsStatus = map[uint8]int{
 	errInternalCommonError: http.StatusInternalServerError,
 	errInternalSqlError: http.StatusInternalServerError,
+	errAlertsNotAuthorized: http.StatusUnauthorized,
 	errAlertsCreatePhoneLength: http.StatusBadRequest,
 	errAlertsCreatePhoneFormat: http.StatusBadRequest,
 	errAlertsCreatePhoneNotFound: http.StatusNotFound,

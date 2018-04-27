@@ -19,6 +19,9 @@ type CoreConfig struct {
 			Migrations_Path string
 			Sql_Debug bool
 		}
+		Api struct {
+			Sign_Secret string
+		}
 	}
 }
 

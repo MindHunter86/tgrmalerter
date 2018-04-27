@@ -1,5 +1,9 @@
 package app
 
+import "encoding/hex"
+import "crypto/sha256"
+import "crypto/hmac"
+import "bytes"
 import "strings"
 import "io/ioutil"
 import "net/http"
@@ -132,6 +136,36 @@ func (m *api) httpMiddlewareRequestLog(h http.Handler) http.Handler {
 
 func (m *api) httpMiddlewareAPIAuthentication(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		var errs = context.Get(r, "internal_errors").(*apiErrors)
+
+		var bodyBuf bytes.Buffer
+		bufSize,e := bodyBuf.ReadFrom(r.Body); if !m.errorHandler(w,e,errs) { return }
+		r.Body.Close()
+
+		m.log.Debug().Str("request_body", bodyBuf.String()).Msg("Request body dump")
+
+		mac := hmac.New(sha256.New, []byte(m.conf.Base.Api.Sign_Secret))
+		macSize,e := mac.Write(bodyBuf.Bytes()); if !m.errorHandler(w,e,errs) { return }
+
+		if r.ContentLength != bufSize || r.ContentLength != int64(macSize) {
+			m.log.Warn().Msg("Different sizes in request, buffer and mac!") }
+
+		expectedMAC := mac.Sum(nil)
+		receivedMAC,e := hex.DecodeString(strings.Split(
+			r.Header.Get("Authorization"), " ")[1]); if !m.errorHandler(w,e,errs) { return }
+
+		m.log.Debug().Str("mac_expected", hex.EncodeToString(expectedMAC)).Str("mac_recevied", strings.Split(r.Header.Get("Authorization"), " ")[1]).Msg("HMAC signs comparison")
+
+		if ! hmac.Equal(expectedMAC, receivedMAC) {
+			errs.newError(errAlertsNotAuthorized)
+
+			var status int
+			var rspPayload = new(apiResponse)
+			rspPayload.Errors,status = errs.logAndSave().getErrorResponse()
+			m.respondJSON(w, rspPayload, status); return }
+
+		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBuf.Bytes()))
 		h.ServeHTTP(w,r)
 	})
 }
