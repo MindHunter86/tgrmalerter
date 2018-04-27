@@ -35,12 +35,12 @@ type dataLinks struct {
 }
 type responseError struct {
 	Id string										`json:"id,omitempty"`
-	Links *dataLinks						`json:"links,omitempty"`
 	Code int										`json:"code,omitempty"`
 	Status int									`json:"status,omitempty"`
 	Title string								`json:"title,omitempty"`
 	Detail string								`json:"detail,omitempty"`
 	Source *errorSource					`json:"source,omitempty"`
+	Links *dataLinks						`json:"links,omitempty"`
 }
 type errorSource struct {
 	Parameter string						`json:"parameter,omitempty"`
