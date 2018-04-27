@@ -11,6 +11,6 @@ base:
     host: '127.0.0.1:23306'
     username: 'mservice1'
     password: 'WmhnLWKxFZ3eTbDUkSVXXhNqyvJys4Vu'
-    database: 'mservice1'
+    database: 'tgrmAlerter'
     migrations_path: 'extras/migrations'
 ...
