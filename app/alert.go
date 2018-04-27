@@ -14,8 +14,8 @@ type modelUser struct {
 
 
 func getUserByPhone(r *http.Request) *modelUser {
-	var ap = context.Get(r, "ptr_api").(*api)
-	var errs = context.Get(r, "errors").(*apiErrors)
+	var ap = context.Get(r, "internal_api").(*api)
+	var errs = context.Get(r, "internal_errors").(*apiErrors)
 	var phone = context.Get(r, "param_phone").(string)
 
 	// check phone length:

@@ -6,6 +6,8 @@ import "encoding/json"
 import "github.com/gorilla/mux"
 import "github.com/gorilla/context"
 
+import "github.com/satori/go.uuid"
+
 // JSON response structs:
 // Recomendations are taken from jsonapi.org:
 type apiResponse struct {
@@ -57,49 +59,98 @@ type httpRequest struct {
 
 	// payload:
 	id string
-	link string
 }
 
-func (m *httpRequest) create() *httpRequest { return nil }
+func (m *httpRequest) create(a *api) *httpRequest {
+	m.id = uuid.NewV4().String()
+	m.ap = a
+	return m
+}
+
+func (m *httpRequest) save(r *http.Request) error {
+	m.ap.log.Debug().Msg("Saving request data")
+
+	stmt,e := m.ap.sqldb.Prepare("INSERT INTO requests VALUES (?,?,?,?,?,?,?)"); if e != nil { return e }
+	defer stmt.Close()
+
+	if _,e = stmt.Exec(m.id, r.RemoteAddr, r.Method, r.ContentLength, r.RequestURI, 0, r.UserAgent()); e != nil { return e }
+
+	return nil
+}
+
+func (m *httpRequest) saveStatus(status int) {
+	stmt,e := m.ap.sqldb.Prepare("UPDATE requests SET status = ? WHERE id = ?"); if e != nil {
+		m.ap.log.Error().Err(e).Msg("Could not prepare DB statement!"); return }
+	defer stmt.Close()
+
+	if _,e := stmt.Exec(status, m.id); e != nil {
+		m.ap.log.Error().Err(e).Msg("Could not execute DB statement!"); return }
+}
+
 
 // internal Application struct:
 type api struct { *App }
-type alertsHandler struct { ap *api }
 
 
 func (m *api) setApp(a *App) *api { m.App = a; return m }
 
 func (m *api) getMuxRouter() *mux.Router {
 	var r = mux.NewRouter()
-	var htAlerts = &alertsHandler{m}
 
 	r.Host(m.conf.Base.Http.Host)
 	r.Headers("Content-Type", "application/json")
 
-	// TODO: add status && version
-//	r.HandleFunc("/", m.httpRootHandler).Methods("GET")
+	r.Use(m.httpMiddlewareRequestLog)
+	r.Use(m.httpMiddlewareRequestCreate)
 
-	// XXX: DEBUG ONLY!!!
-	// r.HandleFunc("/v1/alerts/{id:[0-9]+}", htAlerts.Get).Methods("GET")
-	r.HandleFunc("/v1/alerts/{id:[0-9]+}", htAlerts.Create).Methods("GET")
-	r.HandleFunc("/v1/alerts/{id:[0-9]+}", htAlerts.Create).Methods("POST")
+	r.HandleFunc("/v1", m.httpHandlerRootV1).Methods("GET")
+	r.HandleFunc("/v1/alerts/{id:[0-9]+}", m.httpHandlerAlertsGet).Methods("GET")
+	r.HandleFunc("/v1/alerts/{id:[0-9]+}", m.httpHandlerAlertsCreate).Methods("POST")
 
 	return r
 }
 
-func (m *alertsHandler) Get(w http.ResponseWriter, r *http.Request) {}
+func (m *api) httpMiddlewareRequestLog(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var errs = new(apiErrors).setApiPointer(m)
+		var htRequest = new(httpRequest).create(m)
 
-func (m *alertsHandler) Create(w http.ResponseWriter, r *http.Request) {
+		errs.setRequestId(htRequest.id).setRequestLink(r.RequestURI)
+
+		if e := htRequest.save(r); e != nil {
+			m.log.Error().Err(e).Msg("Could not save request in the database!")
+			errs.newError(errInternalCommonError) }
+
+		context.Set(r, "internal_errors", errs)
+		context.Set(r, "internal_request", htRequest)
+
+		h.ServeHTTP(w,r)
+
+		htRequest.saveStatus(errs.requestStatus)
+	})
+}
+func (m *api) httpMiddlewareRequestCreate(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.log.Debug().Msg("httpMiddlewareRequestCreate")
+
+		h.ServeHTTP(w,r)
+
+		m.log.Debug().Msg("httpMiddlewareRequestCreate2")
+	})
+}
+
+func (m *api) httpHandlerRootV1(w http.ResponseWriter, r *http.Request) {}
+func (m *api) httpHandlerAlertsGet(w http.ResponseWriter, r *http.Request) {}
+func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 	// TODO : PHONE MUST BE AS URL PARAM
 	//var mv = mux.Vars(r)
-	var errs = new(apiErrors).setApiPointer(m.ap)
+	var errs = context.Get(r, "internal_errors").(*apiErrors)
 
 	var req *apiPostRequest
-	reqBody,e := ioutil.ReadAll(r.Body); if !m.ap.errorHandler(w,e,errs) { return }
-	e = json.Unmarshal(reqBody, req); if !m.ap.errorHandler(w,e,errs) { return }
+	reqBody,e := ioutil.ReadAll(r.Body); if !m.errorHandler(w,e,errs) { return }
+	e = json.Unmarshal(reqBody, req); if !m.errorHandler(w,e,errs) { return }
 
-	context.Set(r, "inter_api", m.ap)
-	context.Set(r, "inter_errs", errs)
+	context.Set(r, "internal_api", m)
 	context.Set(r, "param_phone", req.Data.Attributes.Phone)
 	context.Set(r, "param_alert", req.Data.Attributes.Alert)
 
@@ -109,7 +160,7 @@ func (m *alertsHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var status int
 	rspPayload.Errors,status = errs.logAndSave().getErrorResponse()
-	m.ap.respondJSON(w, rspPayload, status)
+	m.respondJSON(w, rspPayload, status)
 }
 
 func (m *api) errorHandler(w http.ResponseWriter, e error, errs *apiErrors) bool {

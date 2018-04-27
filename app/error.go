@@ -61,6 +61,7 @@ type apiErrors struct {
 	// payload:
 	requestId string
 	requestLink string
+	requestStatus int
 	errors []*apiError
 }
 
@@ -75,7 +76,6 @@ func (m *apiErrors) newError(e uint8) *apiError {
 }
 
 func (m *apiErrors) getErrorResponse() ([]*responseError, int) {
-	var respCode int
 	var respErrors []*responseError
 
 	for _,v := range m.errors {
@@ -90,11 +90,11 @@ func (m *apiErrors) getErrorResponse() ([]*responseError, int) {
 			Links: &dataLinks{
 				Self: m.requestLink } })
 
-		if apiErrorsStatus[v.e] > respCode {
-		 respCode = apiErrorsStatus[v.e] }
+		if apiErrorsStatus[v.e] > m.requestStatus {
+		 m.requestStatus = apiErrorsStatus[v.e] }
 	}
 
-	return respErrors, respCode
+	return respErrors,m.requestStatus
 }
 
 func (m *apiErrors) logAndSave() *apiErrors {
