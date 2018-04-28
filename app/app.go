@@ -10,6 +10,12 @@ import "mailru/tgrmalerter/core/config"
 
 import "github.com/go-telegram-bot-api/telegram-bot-api"
 
+
+
+/// GLOBAL TODO:
+// - refactor with global variables
+
+
 type App struct {
 	log *zerolog.Logger
 	conf *config.CoreConfig
@@ -18,12 +24,22 @@ type App struct {
 	tgDispatcher *tgrmDispatcher
 }
 
+var (
+	gbSqlDB *sql.DB
+)
+
 
 // application public API:
 func (m *App) SetLogger(l *zerolog.Logger) *App { m.log = l; return m }
 func (m *App) SetConfig(c *config.CoreConfig) *App { m.conf = c; return m }
-func (m *App) SetSqlDriver(d tsql.SqlDriver) *App { m.sqldb = d.GetRawDBSession(); return m }
 func (m *App) NewApplicationApi() *mux.Router { return new(api).setApp(m).getMuxRouter() }
+
+func (m *App) SetSqlDriver(d tsql.SqlDriver) *App {
+	gbSqlDB = d.GetRawDBSession()
+	m.sqldb = d.GetRawDBSession()
+	return m
+}
+
 func (m *App) SetTBot(t *tgbotapi.BotAPI) *App {
 	m.tbotApi = new(tgrmApi).setTBot(t).setLogger(m.log)
 	m.tgDispatcher.tgApi = m.tbotApi

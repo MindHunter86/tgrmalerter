@@ -16,9 +16,9 @@ type userModel struct {
 
 type baseUser struct {
   phone string
-	userid string
+	chatId int64
+	username string
 	registered bool
-	firstName, lastName string
 }
 
 func (m *userModel) construct(r *http.Request) *userModel {
@@ -56,7 +56,7 @@ func (m *userModel) findUserByPhone(phone string) bool {
 }
 
 func (m *userModel) getUserByPhone() *baseUser {
-	stmt,e := m.ap.sqldb.Prepare("SELECT phone,userid,registered,first_name,last_name FROM users WHERE phone = ? LIMIT 1")
+	stmt,e := m.ap.sqldb.Prepare("SELECT phone,chat_id,registered FROM users WHERE phone = ? LIMIT 1")
 	if e != nil { m.handleErrors(e, errInternalSqlError, "Could not prepare DB statement!"); return nil }
 	defer stmt.Close()
 
@@ -68,7 +68,7 @@ func (m *userModel) getUserByPhone() *baseUser {
 		m.handleErrors(nil, errInternalCommonError, "Could not exec rows.News method!"); return nil }
 
 	m.usr = new(baseUser)
-	if e := rows.Scan(&m.usr.phone, &m.usr.userid, &m.usr.registered, &m.usr.firstName, &m.usr.lastName); e != nil {
+	if e := rows.Scan(&m.usr.phone, &m.usr.chatId, &m.usr.registered); e != nil {
 		m.handleErrors(e, errInternalSqlError, "Could not scan the result from DB!"); return nil }
 
 	return m.usr
@@ -96,7 +96,18 @@ func (m *baseUser) isRegistered() bool { return m.registered }
 func (m *baseUser) register() { m.registered = true }
 func (m *baseUser) unregister() { m.registered = false }
 
-func (m *baseUser) createUserFromContact() {}
+func (m *baseUser) createAndSave(phone string, chatId int64) error {
+	stmt,e := gbSqlDB.Prepare("INSERT INTO users (phone,chat_id,registered) VALUES (?,?,?)")
+	if e != nil { return e }
+	defer stmt.Close()
+
+	if _,e := stmt.Exec(phone, chatId, true); e != nil { return e }
+
+	m.phone = phone
+	m.chatId = chatId
+
+	return nil
+}
 func (m *baseUser) updateUserMetaInfo() {}
 
 // internal helpers for userModel:
@@ -111,6 +122,7 @@ func parseRawPhone(phone string) (string, uint8) {
 		if phone[2:3] != "9" { return "",errAlertsCreatePhoneFormat }
 		phone = phone[2:]
 	case "89": phone = phone[1:]
+	case "79": phone = phone[1:]
 	default: return "",errAlertsCreatePhoneFormat }
 
 	return phone,errNotError

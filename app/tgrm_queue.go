@@ -126,6 +126,6 @@ LOOP:
 func (m *tgrmWorker) doJob(j *tgrmJob) {
 	j.um.ap.log.Debug().Msg("HOORAY OVER UNSAFE POINTER!")
 	m.tgApi.log.Debug().Msg("tgApi debug message")
-	m.tgApi.sendMessage(j.user.userid, j.message)
+	m.tgApi.sendMessage(j.user.chatId, j.message)
 }
 

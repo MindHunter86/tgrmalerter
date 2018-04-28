@@ -20,7 +20,7 @@ func (m *tgrmApi) setLogger(l *zerolog.Logger) *tgrmApi { m.log = l; return m }
 func (m *tgrmApi) commandRouter(msg *tgbotapi.Message) {
 	switch msg.Command() {
 	case "start": m.requestContact(msg.Chat.ID)
-	default: m.log.Warn().Str("author", msg.From.String()).Msg("An empty command has been received!")
+	default: m.log.Warn().Str("author", msg.From.String()).Int64("chatId", msg.Chat.ID).Msg("An empty command has been received!")
 	}
 }
 
@@ -38,6 +38,10 @@ func (m *tgrmApi) registerContact(chatId int64, formId int, contact *tgbotapi.Co
 			m.log.Error().Err(e).Msg("Could not send message!") } }
 
 	// SOME REGISTRATION
+	m.log.Debug().Str("new phone number!", contact.PhoneNumber).Msg("1234")
+	phone,_ := parseRawPhone(contact.PhoneNumber)
+	if e := new(baseUser).createAndSave(phone, chatId); e != nil {
+		m.log.Error().Err(e).Msg("User creation failed!")	}
 
 	msg := tgbotapi.NewMessage(chatId, tgrmMsgRegisterSuccess)
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
@@ -45,8 +49,9 @@ func (m *tgrmApi) registerContact(chatId int64, formId int, contact *tgbotapi.Co
 		m.log.Error().Err(e).Msg("Could not send message!") }
 }
 
-func (m *tgrmApi) sendMessage(uId, message string) {
-	m.log.Debug().Str("uId", uId).Str("message", message).Msg("WTF?!")
-	if _,e := m.tbot.Send(tgbotapi.NewMessageToChannel(uId, message)); e != nil {
+
+
+func (m *tgrmApi) sendMessage(chId int64, message string) {
+	if _,e := m.tbot.Send(tgbotapi.NewMessage(chId, message)); e != nil {
 		m.log.Error().Err(e).Msg("Could not send message!") }
 }
