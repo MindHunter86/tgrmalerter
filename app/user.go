@@ -1,7 +1,5 @@
 package app
 
-import "time"
-
 import "net/http"
 import "github.com/gorilla/context"
 
@@ -20,7 +18,6 @@ type baseUser struct {
 	userid string
 	registered bool
 	firstName, lastName string
-	registered_at *time.Time
 }
 
 func (m *userModel) construct(r *http.Request) *userModel {
@@ -57,7 +54,7 @@ func (m *userModel) findUserByPhone(phone string) bool {
 }
 
 func (m *userModel) getUserByPhone() *baseUser {
-	stmt,e := m.ap.sqldb.Prepare("SELECT * FROM users WHERE phone = ? LIMIT 1")
+	stmt,e := m.ap.sqldb.Prepare("SELECT phone,userid,registered,first_name,last_name FROM users WHERE phone = ? LIMIT 1")
 	if e != nil { m.handleErrors(e, errInternalSqlError, "Could not prepare DB statement!"); return nil }
 	defer stmt.Close()
 
@@ -69,7 +66,7 @@ func (m *userModel) getUserByPhone() *baseUser {
 		m.handleErrors(nil, errInternalCommonError, "Could not exec rows.News method!"); return nil }
 
 	m.usr = new(baseUser)
-	if e := rows.Scan(&m.usr); e != nil {
+	if e := rows.Scan(&m.usr.phone, &m.usr.userid, &m.usr.registered, &m.usr.firstName, &m.usr.lastName); e != nil {
 		m.handleErrors(e, errInternalSqlError, "Could not scan the result from DB!"); return nil }
 
 	return m.usr
