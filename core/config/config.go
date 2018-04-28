@@ -23,9 +23,14 @@ type CoreConfig struct {
 			Sign_Secret string
 		}
 		Telegram struct {
-			Tgrm_Debug bool
-			Token string
-			Timeout int
+			Botapi struct {
+				Tgrm_Debug bool
+				Token string
+				Timeout int
+			}
+			Queue struct {
+				Workers, Worker_Capacity int
+			}
 		}
 	}
 }

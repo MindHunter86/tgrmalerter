@@ -21,7 +21,7 @@ type apiResponse struct {
 }
 type responseData struct {
 	Type string									`json:"type,omitempty"`
-	Id int											`json:"id,omitempty"`
+	Id string										`json:"id,omitempty"`
 	Attributes *dataAttributes	`json:"attributes,omitempty"`
 	Links *dataLinks						`json:"links,omitempty"`
 }
@@ -182,15 +182,16 @@ func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 	context.Set(r, "param_phone", req.Data.Attributes.Phone)
 	context.Set(r, "param_alert", req.Data.Attributes.Alert)
 
+	var status int
 	var rspPayload = new(apiResponse)
 	if phone,err := parseRawPhone(req.Data.Attributes.Phone); err == errNotError {
 		if usr := new(userModel).construct(r); usr.findUserByPhone(phone) {
-			rspPayload.Data = usr.sendAlertWithResponse(req.Data.Attributes.Alert)
+			rspPayload.Data,status = usr.sendAlertWithResponse(req.Data.Attributes.Alert)
 		}
 	} else { errs.newError(err) }
 
-	var status int
-	rspPayload.Errors,status = errs.logAndSave().getErrorResponse()
+	var errStatus int
+	if rspPayload.Errors,errStatus = errs.logAndSave().getErrorResponse(); errStatus != 0 { status = errStatus }
 	m.respondJSON(w, rspPayload, status)
 }
 

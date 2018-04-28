@@ -19,13 +19,13 @@ func (m *TgrmService) SetConfig(c *config.CoreConfig) *TgrmService { m.conf = c;
 
 func (m *TgrmService) Construct() (*TgrmService,error) {
 	var e error
-	if m.tbot,e = tgbotapi.NewBotAPI(m.conf.Base.Telegram.Token); e != nil { return nil,e }
-	if m.conf.Base.Telegram.Tgrm_Debug { m.tbot.Debug = true }
+	if m.tbot,e = tgbotapi.NewBotAPI(m.conf.Base.Telegram.Botapi.Token); e != nil { return nil,e }
+	if m.conf.Base.Telegram.Botapi.Tgrm_Debug { m.tbot.Debug = true }
 
 	m.done = make(chan struct{}, 1)
 
 	tgUpdatesConfig := tgbotapi.NewUpdate(0)
-	tgUpdatesConfig.Timeout = m.conf.Base.Telegram.Timeout
+	tgUpdatesConfig.Timeout = m.conf.Base.Telegram.Botapi.Timeout
 	if m.tbotUpdates,e = m.tbot.GetUpdatesChan(tgUpdatesConfig); e != nil { return nil,e }
 
 	return m,nil

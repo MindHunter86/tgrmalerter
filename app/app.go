@@ -15,6 +15,7 @@ type App struct {
 	conf *config.CoreConfig
 	sqldb *sql.DB
 	tbotApi *tgrmApi
+	tgDispatcher *tgrmDispatcher
 }
 
 
@@ -25,9 +26,23 @@ func (m *App) SetSqlDriver(d tsql.SqlDriver) *App { m.sqldb = d.GetRawDBSession(
 func (m *App) NewApplicationApi() *mux.Router { return new(api).setApp(m).getMuxRouter() }
 func (m *App) SetTBot(t *tgbotapi.BotAPI) *App { m.tbotApi = new(tgrmApi).setTBot(t).setLogger(m.log); return m }
 
-func (m *App) Construct() (*App, error) { return m,nil }
-func (m *App) Bootstrap() error { return nil }
-func (m *App) Destruct() error { return nil }
+func (m *App) Construct() (*App, error) {
+	m.tgDispatcher = &tgrmDispatcher{
+		pool: make(chan chan *tgrmJob, m.conf.Base.Telegram.Queue.Worker_Capacity),
+		jobQueue: make(chan *tgrmJob),
+		done: make(chan struct{}, 1),
+		workerDone: make(chan struct{}, 1) }
+	return m,nil
+}
+func (m *App) Bootstrap() error {
+	m.tgDispatcher.bootstrap(
+		m.conf.Base.Telegram.Queue.Workers, m.conf.Base.Telegram.Queue.Worker_Capacity)
+	return nil
+}
+func (m *App) Destruct() error {
+	m.tgDispatcher.destruct()
+	return nil
+}
 
 func (m *App) TelegramUpdateHandler(up *tgbotapi.Update) {
 	m.log.Debug().Str("message", up.Message.Text).Msg("TelegramUpdateHandler has been triggered!")

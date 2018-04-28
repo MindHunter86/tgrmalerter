@@ -7,6 +7,7 @@ type userModel struct {
 	// internal pointers:
 	ap *api
 	errs *apiErrors
+	requestMeta *httpRequest
 
 	// payload:
 	phone string
@@ -23,6 +24,7 @@ type baseUser struct {
 func (m *userModel) construct(r *http.Request) *userModel {
 	m.ap = context.Get(r, "internal_api").(*api)
 	m.errs = context.Get(r, "internal_errors").(*apiErrors)
+	m.requestMeta = context.Get(r, "internal_request").(*httpRequest)
 	return m
 }
 
@@ -72,24 +74,29 @@ func (m *userModel) getUserByPhone() *baseUser {
 	return m.usr
 }
 
-func (m *userModel) sendAlertWithResponse(alert string) *responseData {
-	if m.getUserByPhone() == nil { return nil }
+func (m *userModel) sendAlertWithResponse(alert string) (*responseData,int) {
+	if m.getUserByPhone() == nil { return nil,0 }
 	if ! m.usr.isRegistered() {
-		m.errs.newError(errAlertsCreatePhoneNotRegistered); return nil }
+		m.errs.newError(errAlertsCreatePhoneNotRegistered); return nil,0 }
 
-	//
-	m.ap.log.Debug().Msg("Temporary program stop!")
+	tgJob := new(tgrmJob).setUserModel(m).create(m.requestMeta.id, alert, m.usr).queueUp()
+	if len(m.errs.errors) != 0 { return nil,0 }
 
-	return nil
+	return &responseData{
+		Type: "alerts",
+		Id: tgJob.id,
+		Attributes: &dataAttributes{
+			Status: "IN QUEUE" }, // TODO: ADD CONS MESSAGES IN TGRM_ERRORS
+	}, http.StatusAccepted
 }
-
-func (m *userModel) createUserFromContact() {}
-func (m *userModel) updateUserMetaInfo() {}
 
 // methods for baseUser:
 func (m *baseUser) isRegistered() bool { return m.registered }
 func (m *baseUser) register() { m.registered = true }
 func (m *baseUser) unregister() { m.registered = false }
+
+func (m *baseUser) createUserFromContact() {}
+func (m *baseUser) updateUserMetaInfo() {}
 
 // internal helpers for userModel:
 func parseRawPhone(phone string) (string, uint8) {

@@ -16,7 +16,11 @@ base:
   api:
     sign_secret: "VQJSBIOZrow8Tq5k7OAgytjqmNAckjaGpXk1rzmGRx3i3T4L7aInVNwQMN4k6l9u"
   telegram:
-    tgrm_debug: false
-    token: "440439991:AAFUPF_zCRJPL1sVlLCeF3YA1qnD6L8s60c"
-    timeout: 5 # seconds
+    botapi:
+      tgrm_debug: false
+      token: "440439991:AAFUPF_zCRJPL1sVlLCeF3YA1qnD6L8s60c"
+      timeout: 5 # seconds
+    queue:
+      workers: 1
+      worker_capacity: 1
 ...
