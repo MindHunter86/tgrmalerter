@@ -16,14 +16,14 @@ import "github.com/satori/go.uuid"
 // JSON response structs:
 // Recomendations are taken from jsonapi.org:
 type apiResponse struct {
-	Data *responseData	`json:"data,omitempty"`
-	Errors []*responseError	`json:"errors,omitempty"`
+	Data *responseData					`json:"data,omitempty"`
+	Errors []*responseError			`json:"errors,omitempty"`
 }
 type responseData struct {
-	Type string	`json:"type,omitempty"`
-	Id string	`json:"id,omitempty"`
+	Type string									`json:"type,omitempty"`
+	Id string										`json:"id,omitempty"`
 	Attributes *dataAttributes	`json:"attributes,omitempty"`
-	Links *dataLinks	`json:"links,omitempty"`
+	Links *dataLinks						`json:"links,omitempty"`
 }
 type dataAttributes struct {
 	Phone string								`json:"phone,omitempty"`
