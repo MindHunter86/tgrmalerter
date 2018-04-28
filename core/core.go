@@ -74,7 +74,7 @@ func (m *Core) Bootstrap() error {
 	// application bootstrap:
 	go func(e chan error, wg sync.WaitGroup) {
 		wg.Add(1); defer wg.Done()
-		// TODO: epipe <- m.app.Bootstrap()
+		epipe <- m.app.Bootstrap()
 	}(epipe, m.appWg)
 
 	// main application event loop:

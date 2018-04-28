@@ -29,7 +29,7 @@ type CoreConfig struct {
 				Timeout int
 			}
 			Queue struct {
-				Workers, Worker_Capacity int
+				Workers, Worker_Capacity, Chain_Buffer int
 			}
 		}
 	}

@@ -24,12 +24,17 @@ func (m *App) SetLogger(l *zerolog.Logger) *App { m.log = l; return m }
 func (m *App) SetConfig(c *config.CoreConfig) *App { m.conf = c; return m }
 func (m *App) SetSqlDriver(d tsql.SqlDriver) *App { m.sqldb = d.GetRawDBSession(); return m }
 func (m *App) NewApplicationApi() *mux.Router { return new(api).setApp(m).getMuxRouter() }
-func (m *App) SetTBot(t *tgbotapi.BotAPI) *App { m.tbotApi = new(tgrmApi).setTBot(t).setLogger(m.log); return m }
+func (m *App) SetTBot(t *tgbotapi.BotAPI) *App {
+	m.tbotApi = new(tgrmApi).setTBot(t).setLogger(m.log)
+	m.tgDispatcher.tgApi = m.tbotApi
+	return m
+}
 
 func (m *App) Construct() (*App, error) {
 	m.tgDispatcher = &tgrmDispatcher{
+		tgApi: nil,
 		pool: make(chan chan *tgrmJob, m.conf.Base.Telegram.Queue.Worker_Capacity),
-		jobQueue: make(chan *tgrmJob),
+		jobQueue: make(chan *tgrmJob, m.conf.Base.Telegram.Queue.Chain_Buffer),
 		done: make(chan struct{}, 1),
 		workerDone: make(chan struct{}, 1) }
 	return m,nil

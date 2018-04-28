@@ -44,3 +44,9 @@ func (m *tgrmApi) registerContact(chatId int64, formId int, contact *tgbotapi.Co
 	if _,e := m.tbot.Send(msg); e != nil {
 		m.log.Error().Err(e).Msg("Could not send message!") }
 }
+
+func (m *tgrmApi) sendMessage(uId, message string) {
+	m.log.Debug().Str("uId", uId).Str("message", message).Msg("WTF?!")
+	if _,e := m.tbot.Send(tgbotapi.NewMessageToChannel(uId, message)); e != nil {
+		m.log.Error().Err(e).Msg("Could not send message!") }
+}

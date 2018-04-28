@@ -79,8 +79,9 @@ func (m *userModel) sendAlertWithResponse(alert string) (*responseData,int) {
 	if ! m.usr.isRegistered() {
 		m.errs.newError(errAlertsCreatePhoneNotRegistered); return nil,0 }
 
-	tgJob := new(tgrmJob).setUserModel(m).create(m.requestMeta.id, alert, m.usr).queueUp()
-	if len(m.errs.errors) != 0 { return nil,0 }
+	tgJob := new(tgrmJob).setUserModel(m).create(m.requestMeta.id, alert, m.usr)
+	if tgJob == nil || len(m.errs.errors) != 0 { return nil,0 }
+	tgJob.queueUp()
 
 	return &responseData{
 		Type: "alerts",

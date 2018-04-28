@@ -18,6 +18,7 @@ type tgrmJob struct {
 }
 
 func (m *tgrmJob) setUserModel(u *userModel) *tgrmJob { m.um = u; return m }
+func (m *tgrmJob) queueUp() { m.um.ap.tgDispatcher.getQueueChan() <-m }
 
 func (m *tgrmJob) create(reqId, mess string, usr *baseUser) *tgrmJob {
 	m.requestId = reqId
@@ -29,7 +30,7 @@ func (m *tgrmJob) create(reqId, mess string, usr *baseUser) *tgrmJob {
 }
 
 func (m *tgrmJob) save() *tgrmJob {
-	stmt,e := m.um.ap.sqldb.Prepare("INSERT INTO dispatch_reports (id,request,recipient,message) VALUES (?,?,?,?)")
+	stmt,e := m.um.ap.sqldb.Prepare("INSERT INTO dispatch_reports (id,request_id,recipient,message) VALUES (?,?,?,?)")
 	if e != nil { m.um.handleErrors(e, errInternalSqlError, "Could not prepare DB statement!"); return nil }
 	defer stmt.Close()
 
@@ -39,13 +40,10 @@ func (m *tgrmJob) save() *tgrmJob {
 	return m
 }
 
-func (m *tgrmJob) queueUp() *tgrmJob {
-	m.um.ap.tgDispatcher.getQueueChan() <- m
-	return m
-}
-
 
 type tgrmDispatcher struct {
+	tgApi *tgrmApi
+
 	pool chan chan *tgrmJob
 
 	jobQueue chan *tgrmJob
@@ -55,6 +53,7 @@ type tgrmDispatcher struct {
 }
 
 func (m *tgrmDispatcher) getQueueChan() chan *tgrmJob { return m.jobQueue }
+func (m *tgrmDispatcher) setTgApiPointer(t *tgrmApi) *tgrmDispatcher { m.tgApi = t; return m }
 
 func (m *tgrmDispatcher) bootstrap(maxWorkers, workerCapacity int) {
 	var wg sync.WaitGroup
@@ -62,7 +61,11 @@ func (m *tgrmDispatcher) bootstrap(maxWorkers, workerCapacity int) {
 
 	for i := 0; i < maxWorkers; i ++ {
 		go func(wg sync.WaitGroup) {
-			new(tgrmWorker).setPool(m.pool).setDonePipe(m.workerDone).spawn(workerCapacity)
+			new(tgrmWorker).
+				setPool(m.pool).
+				setDonePipe(m.workerDone).
+				setTgApi(m.tgApi).
+				spawn(workerCapacity)
 			wg.Done() }(wg)
 	}
 
@@ -92,12 +95,15 @@ LOOP:
 
 
 type tgrmWorker struct {
+	tgApi *tgrmApi
+
 	pool chan chan *tgrmJob
 	inbox chan *tgrmJob
 
 	done chan struct{}
 }
 
+func (m *tgrmWorker) setTgApi(t *tgrmApi) *tgrmWorker { m.tgApi = t; return m }
 func (m *tgrmWorker) setPool(p chan chan *tgrmJob) *tgrmWorker { m.pool = p; return m }
 func (m *tgrmWorker) setDonePipe(d chan struct{}) *tgrmWorker { m.done = d; return m }
 
@@ -117,5 +123,9 @@ LOOP:
 	}
 }
 
-func (m *tgrmWorker) doJob(j *tgrmJob) {}
+func (m *tgrmWorker) doJob(j *tgrmJob) {
+	j.um.ap.log.Debug().Msg("HOORAY OVER UNSAFE POINTER!")
+	m.tgApi.log.Debug().Msg("tgApi debug message")
+	m.tgApi.sendMessage(j.user.userid, j.message)
+}
 

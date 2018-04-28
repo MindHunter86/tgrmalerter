@@ -23,4 +23,5 @@ base:
     queue:
       workers: 1
       worker_capacity: 1
+      chain_buffer: 1
 ...
