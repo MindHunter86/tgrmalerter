@@ -3,4 +3,4 @@ extras/bin/*
 tgrmalerter
 
 # exclude service configuration files:
-extras/*yml.
+extras/*yml
