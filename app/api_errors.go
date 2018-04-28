@@ -11,36 +11,44 @@ var (
 	errApiCommonTypeInvalid = errors.New("The request type and the link are not the same!")
 )
 const (
-	errInternalCommonError = uint8(iota)
+	errNotError = uint8(iota)
+	errInternalCommonError
 	errInternalSqlError
 	errAlertsNotAuthorized
 	errAlertsCreatePhoneLength
 	errAlertsCreatePhoneFormat
 	errAlertsCreatePhoneNotFound
+	errAlertsCreatePhoneNotRegistered
 )
 var apiErrorsTitle = map[uint8]string{
+	errNotError: "",
 	errInternalCommonError: "Internal error",
 	errInternalSqlError: "Internal database error",
 	errAlertsNotAuthorized: "Authorization failed",
 	errAlertsCreatePhoneLength: "Abnormal phone parameter length",
 	errAlertsCreatePhoneFormat: "Abnormal phone parameter format",
 	errAlertsCreatePhoneNotFound: "Phone not found",
+	errAlertsCreatePhoneNotRegistered: "Inactive user found",
 }
 var apiErrorsDetail = map[uint8]string{
+	errNotError: "",
 	errInternalCommonError: "The current request could not processed! Please, try again later!",
 	errInternalSqlError: "The current request could not processed due to a database error. Please, try again later!",
 	errAlertsNotAuthorized: "The current request must be signed with a special key for correct authorization! Please, check your credentials!",
 	errAlertsCreatePhoneLength: "The phone must be between 10 and 12 characters in length!",
 	errAlertsCreatePhoneFormat: "The phone should star with +79 or 89 digits!",
 	errAlertsCreatePhoneNotFound: "The requested phone was not found in the database!",
+	errAlertsCreatePhoneNotRegistered: "The requested phone was found but it refers to the disabled user!",
 }
 var apiErrorsStatus = map[uint8]int{
+	errNotError: 0,
 	errInternalCommonError: http.StatusInternalServerError,
 	errInternalSqlError: http.StatusInternalServerError,
 	errAlertsNotAuthorized: http.StatusUnauthorized,
 	errAlertsCreatePhoneLength: http.StatusBadRequest,
 	errAlertsCreatePhoneFormat: http.StatusBadRequest,
 	errAlertsCreatePhoneNotFound: http.StatusNotFound,
+	errAlertsCreatePhoneNotRegistered: http.StatusLocked,
 }
 
 

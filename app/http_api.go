@@ -143,8 +143,6 @@ func (m *api) httpMiddlewareAPIAuthentication(h http.Handler) http.Handler {
 		bufSize,e := bodyBuf.ReadFrom(r.Body); if !m.errorHandler(w,e,errs) { return }
 		r.Body.Close()
 
-		m.log.Debug().Str("request_body", bodyBuf.String()).Msg("Request body dump")
-
 		mac := hmac.New(sha256.New, []byte(m.conf.Base.Api.Sign_Secret))
 		macSize,e := mac.Write(bodyBuf.Bytes()); if !m.errorHandler(w,e,errs) { return }
 
@@ -174,13 +172,10 @@ func (m *api) httpMiddlewareAPIAuthentication(h http.Handler) http.Handler {
 func (m *api) httpHandlerRootV1(w http.ResponseWriter, r *http.Request) {}
 func (m *api) httpHandlerAlertsGet(w http.ResponseWriter, r *http.Request) {}
 func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
-	// TODO : PHONE MUST BE AS URL PARAM
-	//var mv = mux.Vars(r)
 	var errs = context.Get(r, "internal_errors").(*apiErrors)
 
 	var req *apiPostRequest
 	reqBody,e := ioutil.ReadAll(r.Body); if !m.errorHandler(w,e,errs) { return }
-	m.log.Debug().Bytes("request_body", reqBody).Msg("Request body debug")
 	e = json.Unmarshal(reqBody, &req); if !m.errorHandler(w,e,errs) { return }
 
 	context.Set(r, "internal_api", m)
@@ -188,8 +183,11 @@ func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 	context.Set(r, "param_alert", req.Data.Attributes.Alert)
 
 	var rspPayload = new(apiResponse)
-	if usr := getUserByPhone(r); usr != nil {
-		rspPayload.Data = usr.putAlertInQueue() }
+	if phone,err := parseRawPhone(req.Data.Attributes.Phone); err == errNotError {
+		if usr := new(userModel).construct(r); usr.findUserByPhone(phone) {
+			rspPayload.Data = usr.sendAlertWithResponse(req.Data.Attributes.Alert)
+		}
+	} else { errs.newError(err) }
 
 	var status int
 	rspPayload.Errors,status = errs.logAndSave().getErrorResponse()
