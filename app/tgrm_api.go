@@ -1,6 +1,5 @@
 package app
 
-import "github.com/rs/zerolog"
 import "github.com/go-telegram-bot-api/telegram-bot-api"
 
 const (
@@ -10,17 +9,15 @@ const (
 )
 
 type tgrmApi struct {
-	log *zerolog.Logger
-	tbot *tgbotapi.BotAPI
+	*tgbotapi.BotAPI
 }
 
-func (m *tgrmApi) setTBot(t *tgbotapi.BotAPI) *tgrmApi { m.tbot = t; return m }
-func (m *tgrmApi) setLogger(l *zerolog.Logger) *tgrmApi { m.log = l; return m }
+func (m *tgrmApi) construct(t *tgbotapi.BotAPI) *tgrmApi { m.BotAPI = t; return m }
 
 func (m *tgrmApi) commandRouter(msg *tgbotapi.Message) {
 	switch msg.Command() {
 	case "start": m.requestContact(msg.Chat.ID)
-	default: m.log.Warn().Str("author", msg.From.String()).Int64("chatId", msg.Chat.ID).Msg("An empty command has been received!")
+	default: globLogger.Warn().Str("author", msg.From.String()).Msg("[TG-API]: An empty command has been received!")
 	}
 }
 
@@ -28,30 +25,27 @@ func (m *tgrmApi) requestContact(chatId int64) {
 	msgAgreement := tgbotapi.NewMessage(chatId, tgrmMsgRequestAgreement)
 	msgAgreement.ReplyMarkup = tgbotapi.NewReplyKeyboard([]tgbotapi.KeyboardButton{
 		tgbotapi.NewKeyboardButtonContact("Заргеистрироваться в системе") })
-	if _,e :=m.tbot.Send(msgAgreement); e != nil {
-		m.log.Error().Err(e).Msg("Could not send msgAgreement!") }
+	if _,e :=m.Send(msgAgreement); e != nil {
+		globLogger.Error().Err(e).Msg("[TG-API]: Could not send msgAgreement!") }
 }
 
 func (m *tgrmApi) registerContact(chatId int64, formId int, contact *tgbotapi.Contact) {
 	if contact.UserID != formId {
-		if _,e := m.tbot.Send(tgbotapi.NewMessage(chatId, tgrmMsgRegisterPhoneOwner)); e != nil {
-			m.log.Error().Err(e).Msg("Could not send message!") } }
+		if _,e := m.Send(tgbotapi.NewMessage(chatId, tgrmMsgRegisterPhoneOwner)); e != nil {
+			globLogger.Error().Err(e).Msg("[TG-API]: Could not send message!") } }
 
 	// SOME REGISTRATION
-	m.log.Debug().Str("new phone number!", contact.PhoneNumber).Msg("1234")
 	phone,_ := parseRawPhone(contact.PhoneNumber)
 	if e := new(baseUser).createAndSave(phone, chatId); e != nil {
-		m.log.Error().Err(e).Msg("User creation failed!")	}
+		globLogger.Error().Err(e).Msg("[TG-API]: User creation failed!")	}
 
 	msg := tgbotapi.NewMessage(chatId, tgrmMsgRegisterSuccess)
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-	if _,e := m.tbot.Send(msg); e != nil {
-		m.log.Error().Err(e).Msg("Could not send message!") }
+	if _,e := m.Send(msg); e != nil {
+		globLogger.Error().Err(e).Msg("[TG-API]: Could not send message!") }
 }
 
-
-
 func (m *tgrmApi) sendMessage(chId int64, message string) {
-	if _,e := m.tbot.Send(tgbotapi.NewMessage(chId, message)); e != nil {
-		m.log.Error().Err(e).Msg("Could not send message!") }
+	if _,e := m.Send(tgbotapi.NewMessage(chId, message)); e != nil {
+		globLogger.Error().Err(e).Msg("[TG-API]: Could not send message!") }
 }

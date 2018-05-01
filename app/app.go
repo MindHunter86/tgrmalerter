@@ -13,7 +13,13 @@ import "github.com/go-telegram-bot-api/telegram-bot-api"
 
 
 /// GLOBAL TODO:
-// - refactor with global variables
+// -/+ refactor with global variables
+// -/+ add prefixes for logger
+// - check Content Type
+// - check Accept Header
+// - check type and link in the body of the request
+// + refactor apiErrors and httpRequest (apiErrors must be as a part of httpRequest). Create api_request.go
+// ! check api structs on NIL pointers
 
 
 type App struct {
@@ -25,23 +31,35 @@ type App struct {
 }
 
 var (
-	gbSqlDB *sql.DB
+	globSqlDB *sql.DB
+	globLogger *zerolog.Logger
+	globConfig *config.CoreConfig
+	globTgJobChan chan *tgrmJob
 )
 
+type prefixLogger struct {}
+func (m prefixLogger) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+	msg = "fuck you"
+	e.Str("wtf", msg)
+}
 
 // application public API:
-func (m *App) SetLogger(l *zerolog.Logger) *App { m.log = l; return m }
-func (m *App) SetConfig(c *config.CoreConfig) *App { m.conf = c; return m }
-func (m *App) NewApplicationApi() *mux.Router { return new(api).setApp(m).getMuxRouter() }
+func (m *App) SetConfig(c *config.CoreConfig) *App { m.conf = c; globConfig = c; return m }
+func (m *App) NewApplicationApi() *mux.Router { return new(api).getMuxRouter() }
 
 func (m *App) SetSqlDriver(d tsql.SqlDriver) *App {
-	gbSqlDB = d.GetRawDBSession()
+	globSqlDB = d.GetRawDBSession()
 	m.sqldb = d.GetRawDBSession()
 	return m
 }
 
+func (m *App) SetLogger(l *zerolog.Logger) *App {
+	globLogger = l
+	m.log = l; return m
+}
+
 func (m *App) SetTBot(t *tgbotapi.BotAPI) *App {
-	m.tbotApi = new(tgrmApi).setTBot(t).setLogger(m.log)
+	m.tbotApi = new(tgrmApi).construct(t)
 	m.tgDispatcher.tgApi = m.tbotApi
 	return m
 }
@@ -53,6 +71,7 @@ func (m *App) Construct() (*App, error) {
 		jobQueue: make(chan *tgrmJob, m.conf.Base.Telegram.Queue.Chain_Buffer),
 		done: make(chan struct{}, 1),
 		workerDone: make(chan struct{}, 1) }
+	globTgJobChan = m.tgDispatcher.getQueueChan()
 	return m,nil
 }
 func (m *App) Bootstrap() error {

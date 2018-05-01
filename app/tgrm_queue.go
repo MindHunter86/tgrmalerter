@@ -18,7 +18,7 @@ type tgrmJob struct {
 }
 
 func (m *tgrmJob) setUserModel(u *userModel) *tgrmJob { m.um = u; return m }
-func (m *tgrmJob) queueUp() { m.um.ap.tgDispatcher.getQueueChan() <-m }
+func (m *tgrmJob) queueUp() { globTgJobChan <-m }
 
 func (m *tgrmJob) create(reqId, mess string, usr *baseUser) *tgrmJob {
 	m.requestId = reqId
@@ -30,7 +30,7 @@ func (m *tgrmJob) create(reqId, mess string, usr *baseUser) *tgrmJob {
 }
 
 func (m *tgrmJob) save() *tgrmJob {
-	stmt,e := m.um.ap.sqldb.Prepare("INSERT INTO dispatch_reports (id,request_id,recipient,message) VALUES (?,?,?,?)")
+	stmt,e := globSqlDB.Prepare("INSERT INTO dispatch_reports (id,request_id,recipient,message) VALUES (?,?,?,?)")
 	if e != nil { m.um.handleErrors(e, errInternalSqlError, "Could not prepare DB statement!"); return nil }
 	defer stmt.Close()
 
@@ -124,8 +124,6 @@ LOOP:
 }
 
 func (m *tgrmWorker) doJob(j *tgrmJob) {
-	j.um.ap.log.Debug().Msg("HOORAY OVER UNSAFE POINTER!")
-	m.tgApi.log.Debug().Msg("tgApi debug message")
 	m.tgApi.sendMessage(j.user.chatId, j.message)
 }
 

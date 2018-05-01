@@ -5,9 +5,7 @@ import "github.com/gorilla/context"
 
 type userModel struct {
 	// internal pointers:
-	ap *api
-	errs *apiErrors
-	requestMeta *httpRequest
+	request *httpRequest
 
 	// payload:
 	phone string
@@ -22,54 +20,52 @@ type baseUser struct {
 }
 
 func (m *userModel) construct(r *http.Request) *userModel {
-	m.ap = context.Get(r, "internal_api").(*api)
-	m.errs = context.Get(r, "internal_errors").(*apiErrors)
-	m.requestMeta = context.Get(r, "internal_request").(*httpRequest)
+	m.request = context.Get(r, "internal_request").(*httpRequest)
 	return m
 }
 
 func (m *userModel) handleErrors(e error, err uint8, msg string) {
-	m.errs.newError(err); m.ap.log.Error().Err(e).Msg(msg)
+	m.request.newError(err); globLogger.Error().Err(e).Msg(msg)
 }
 
 func (m *userModel) findUserByPhone(phone string) bool {
-	stmt,e := m.ap.sqldb.Prepare("SELECT IF(COUNT(1)=1, true, false) FROM users WHERE phone = ? LIMIT 1")
-	if e != nil { m.handleErrors(e, errInternalSqlError, "Could not prepare DB statement!"); return false }
+	stmt,e := globSqlDB.Prepare("SELECT IF(COUNT(1)=1, true, false) FROM users WHERE phone = ? LIMIT 1")
+	if e != nil { m.handleErrors(e, errInternalSqlError, "[USER]: Could not prepare DB statement!"); return false }
 	defer stmt.Close()
 
 	rows,e := stmt.Query(phone)
-	if e != nil { m.handleErrors(e, errInternalSqlError, "Could not get result from DB!"); return false }
+	if e != nil { m.handleErrors(e, errInternalSqlError, "[USER]: Could not get result from DB!"); return false }
 	defer rows.Close()
 
 	if ! rows.Next() {
-		m.handleErrors(nil, errInternalCommonError, "Could not exec rows.News method!"); return false }
+		m.handleErrors(nil, errInternalCommonError, "[USER]: Could not exec rows.News method!"); return false }
 
 	var isPhoneExist bool
 	if e := rows.Scan(&isPhoneExist); e != nil {
-		m.handleErrors(e, errInternalSqlError, "Could not scan the result from DB!"); return false }
+		m.handleErrors(e, errInternalSqlError, "[USER]: Could not scan the result from DB!"); return false }
 
 	if ! isPhoneExist {
-		m.errs.newError(errAlertsCreatePhoneNotFound).setParameter("phone"); return false }
+		m.request.newError(errAlertsCreatePhoneNotFound).setParameter("phone"); return false }
 
 	m.phone = phone
 	return true
 }
 
 func (m *userModel) getUserByPhone() *baseUser {
-	stmt,e := m.ap.sqldb.Prepare("SELECT phone,chat_id,registered FROM users WHERE phone = ? LIMIT 1")
-	if e != nil { m.handleErrors(e, errInternalSqlError, "Could not prepare DB statement!"); return nil }
+	stmt,e := globSqlDB.Prepare("SELECT phone,chat_id,registered FROM users WHERE phone = ? LIMIT 1")
+	if e != nil { m.handleErrors(e, errInternalSqlError, "[USER]: Could not prepare DB statement!"); return nil }
 	defer stmt.Close()
 
 	rows,e := stmt.Query(m.phone)
-	if e != nil { m.handleErrors(e, errInternalSqlError, "Could not get result from DB!"); return nil }
+	if e != nil { m.handleErrors(e, errInternalSqlError, "[USER]: Could not get result from DB!"); return nil }
 	defer rows.Close()
 
 	if ! rows.Next() {
-		m.handleErrors(nil, errInternalCommonError, "Could not exec rows.News method!"); return nil }
+		m.handleErrors(nil, errInternalCommonError, "[USER]: Could not exec rows.News method!"); return nil }
 
 	m.usr = new(baseUser)
 	if e := rows.Scan(&m.usr.phone, &m.usr.chatId, &m.usr.registered); e != nil {
-		m.handleErrors(e, errInternalSqlError, "Could not scan the result from DB!"); return nil }
+		m.handleErrors(e, errInternalSqlError, "[USER]: Could not scan the result from DB!"); return nil }
 
 	return m.usr
 }
@@ -77,10 +73,10 @@ func (m *userModel) getUserByPhone() *baseUser {
 func (m *userModel) sendAlertWithResponse(alert string) (*responseData,int) {
 	if m.getUserByPhone() == nil { return nil,0 }
 	if ! m.usr.isRegistered() {
-		m.errs.newError(errAlertsCreatePhoneNotRegistered); return nil,0 }
+		m.request.newError(errAlertsCreatePhoneNotRegistered); return nil,0 }
 
-	tgJob := new(tgrmJob).setUserModel(m).create(m.requestMeta.id, alert, m.usr)
-	if tgJob == nil || len(m.errs.errors) != 0 { return nil,0 }
+	tgJob := new(tgrmJob).setUserModel(m).create(m.request.id, alert, m.usr)
+	if tgJob == nil || len(m.request.errors) != 0 { return nil,0 }
 	tgJob.queueUp()
 
 	return &responseData{
@@ -97,7 +93,7 @@ func (m *baseUser) register() { m.registered = true }
 func (m *baseUser) unregister() { m.registered = false }
 
 func (m *baseUser) createAndSave(phone string, chatId int64) error {
-	stmt,e := gbSqlDB.Prepare("INSERT INTO users (phone,chat_id,registered) VALUES (?,?,?)")
+	stmt,e := globSqlDB.Prepare("INSERT INTO users (phone,chat_id,registered) VALUES (?,?,?)")
 	if e != nil { return e }
 	defer stmt.Close()
 

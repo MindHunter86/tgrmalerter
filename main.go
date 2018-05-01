@@ -17,8 +17,8 @@ func main() {
 	// parse all mservice given arguments:
 	flag.Parse()
 
-
 	// log initialization:
+	zerolog.ErrorFieldName = "ERROR"
 	log := zerolog.New(zerolog.ConsoleWriter{
 		Out: os.Stderr }).With().Timestamp().Logger()
 	log.Debug().Msg("Logger has been successfully initialized!")
