@@ -18,7 +18,7 @@ type tgrmJob struct {
 }
 
 func (m *tgrmJob) setUserModel(u *userModel) *tgrmJob { m.um = u; return m }
-func (m *tgrmJob) queueUp() { globTgJobChan <-m }
+func (m *tgrmJob) queueUp() { globTgDispatcher.getQueueChan() <-m }
 
 func (m *tgrmJob) create(reqId, mess string, usr *baseUser) *tgrmJob {
 	m.requestId = reqId
@@ -31,19 +31,17 @@ func (m *tgrmJob) create(reqId, mess string, usr *baseUser) *tgrmJob {
 
 func (m *tgrmJob) save() *tgrmJob {
 	stmt,e := globSqlDB.Prepare("INSERT INTO dispatch_reports (id,request_id,recipient,message) VALUES (?,?,?,?)")
-	if e != nil { m.um.handleErrors(e, errInternalSqlError, "Could not prepare DB statement!"); return nil }
+	if e != nil { m.um.handleError(e, errInternalSqlError, "Could not prepare DB statement!"); return nil }
 	defer stmt.Close()
 
 	if _,e := stmt.Exec(m.id,m.requestId,m.user.phone,m.message); e != nil {
-		m.um.handleErrors(e, errInternalSqlError, "Could not write job!"); return nil }
+		m.um.handleError(e, errInternalSqlError, "Could not write job!"); return nil }
 
 	return m
 }
 
 
 type tgrmDispatcher struct {
-	tgApi *tgrmApi
-
 	pool chan chan *tgrmJob
 
 	jobQueue chan *tgrmJob
@@ -53,7 +51,6 @@ type tgrmDispatcher struct {
 }
 
 func (m *tgrmDispatcher) getQueueChan() chan *tgrmJob { return m.jobQueue }
-func (m *tgrmDispatcher) setTgApiPointer(t *tgrmApi) *tgrmDispatcher { m.tgApi = t; return m }
 
 func (m *tgrmDispatcher) bootstrap(maxWorkers, workerCapacity int) {
 	var wg sync.WaitGroup
@@ -64,7 +61,6 @@ func (m *tgrmDispatcher) bootstrap(maxWorkers, workerCapacity int) {
 			new(tgrmWorker).
 				setPool(m.pool).
 				setDonePipe(m.workerDone).
-				setTgApi(m.tgApi).
 				spawn(workerCapacity)
 			wg.Done() }(wg)
 	}
@@ -95,15 +91,12 @@ LOOP:
 
 
 type tgrmWorker struct {
-	tgApi *tgrmApi
-
 	pool chan chan *tgrmJob
 	inbox chan *tgrmJob
 
 	done chan struct{}
 }
 
-func (m *tgrmWorker) setTgApi(t *tgrmApi) *tgrmWorker { m.tgApi = t; return m }
 func (m *tgrmWorker) setPool(p chan chan *tgrmJob) *tgrmWorker { m.pool = p; return m }
 func (m *tgrmWorker) setDonePipe(d chan struct{}) *tgrmWorker { m.done = d; return m }
 
@@ -124,6 +117,6 @@ LOOP:
 }
 
 func (m *tgrmWorker) doJob(j *tgrmJob) {
-	m.tgApi.sendMessage(j.user.chatId, j.message)
+	globTgApi.sendMessage(j.user.chatId, j.message)
 }
 

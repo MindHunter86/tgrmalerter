@@ -43,9 +43,9 @@ func (m *Core) Construct() (*Core, error) {
 	m.app.SetSqlDriver(m.sql)
 
 	if m.tgrm,e = new(tgrm.TgrmService).SetConfig(m.cfg).SetApp(m.app).Construct(); e != nil { return nil,e }
-	m.app.SetTBot(m.tgrm.GetTBot())
+	m.app.SetTgBotApi(m.tgrm.GetTBot())
 
-	m.http = new(http.HttpService).SetConfig(m.cfg).SetLogger(m.log).Construct(m.app.NewApplicationApi())
+	m.http = new(http.HttpService).SetConfig(m.cfg).SetLogger(m.log).Construct(m.app.NewHttpApi())
 
 	return m,nil
 }

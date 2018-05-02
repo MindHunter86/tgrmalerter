@@ -105,15 +105,11 @@ func (m *api) httpMiddlewareAPIAuthentication(h http.Handler) http.Handler {
 			r.Header.Get("Authorization"), " ")[1]); if !m.errorHandler(w,e,req) { return }
 
 		globLogger.Debug().Str("mac_expected", hex.EncodeToString(expectedMAC)).Msg("[API]: HMAC sings comparison")
-		globLogger.Debug().Str("mac_recevied", strings.Split(r.Header.Get("Authorization"), " ")[1]).Msg("[API]: HMAC signs comparison")
+		globLogger.Debug().Str("mac_received", strings.Split(r.Header.Get("Authorization"), " ")[1]).Msg("[API]: HMAC signs comparison")
 
 		if ! hmac.Equal(expectedMAC, receivedMAC) {
 			req.newError(errAlertsNotAuthorized)
-
-			var status int
-			var rspPayload = new(apiResponse)
-			rspPayload.Errors,status = req.saveErrors().respondApiErrors()
-			m.respondJSON(w, rspPayload, status); return }
+			m.respondJSON(w, req, nil, 0); return }
 
 		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBuf.Bytes()))
 		h.ServeHTTP(w,r)
@@ -131,20 +127,30 @@ func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 	reqBody,e := ioutil.ReadAll(r.Body); if !m.errorHandler(w,e,req) { return }
 	e = json.Unmarshal(reqBody, &postRequest); if !m.errorHandler(w,e,req) { return }
 
+	switch {
+	case postRequest.Data == nil,
+		postRequest.Data.Type == "",
+		postRequest.Data.Attributes == nil,
+		postRequest.Data.Attributes.Alert == "",
+		postRequest.Data.Attributes.Phone == "":
+			req.newError(errAlertsUnknownApiFormat)
+			m.respondJSON(w, req, nil, 0); return
+	default:
+		globLogger.Debug().Msg("[API]: data checker is OK!")
+	}
+
 	context.Set(r, "param_phone", postRequest.Data.Attributes.Phone)
 	context.Set(r, "param_alert", postRequest.Data.Attributes.Alert)
 
 	var status int
-	var rspPayload = new(apiResponse)
+	var payloadData *responseData
 	if phone,err := parseRawPhone(postRequest.Data.Attributes.Phone); err == errNotError {
 		if usr := new(userModel).construct(r); usr.findUserByPhone(phone) {
-			rspPayload.Data,status = usr.sendAlertWithResponse(postRequest.Data.Attributes.Alert)
+			payloadData,status = usr.sendAlertWithResponse(postRequest.Data.Attributes.Alert)
 		}
 	} else { req.newError(err) }
 
-	var errStatus int
-	if rspPayload.Errors,errStatus = req.saveErrors().respondApiErrors(); errStatus != 0 { status = errStatus }
-	m.respondJSON(w, rspPayload, status)
+	m.respondJSON(w, req, payloadData, status)
 }
 
 func (m *api) errorHandler(w http.ResponseWriter, e error, req *httpRequest) bool {
@@ -153,14 +159,21 @@ func (m *api) errorHandler(w http.ResponseWriter, e error, req *httpRequest) boo
 	req.newError(errInternalCommonError)
 	globLogger.Error().Err(e).Msg("[API]: Abnormal function result!")
 
-	rsp,status := req.saveErrors().respondApiErrors()
-	m.respondJSON(w, &apiResponse{ Errors: rsp }, status)
+	m.respondJSON(w, req, nil, 0)
 	return false
 }
 
-func (m *api) respondJSON(w http.ResponseWriter, payload *apiResponse, status int) {
-	w.Header().Set("Content-Type", "application/json")
+func (m *api) respondJSON(w http.ResponseWriter, req *httpRequest, payloadData *responseData, status int) {
+	//
+	var rspPayload = &apiResponse{
+		Data: payloadData }
+
+	if rspPayload.Errors,status = req.saveErrors().respondApiErrors(); req.status > status {
+		status = req.status
+		rspPayload.Data = nil	}
+
+	w.Header().Set("Content-Type", "application/vnd.api+json")
 	w.WriteHeader(status)
 
-	json.NewEncoder(w).Encode(payload)
+	json.NewEncoder(w).Encode(rspPayload)
 }
