@@ -18,8 +18,10 @@ import "github.com/go-telegram-bot-api/telegram-bot-api"
 // - check type and link in the body of the request
 // + refactor apiErrors and httpRequest (apiErrors must be as a part of httpRequest). Create api_request.go
 // + check api structs on NIL pointers
-// - added method for updating dispatch status
+// -/+ added method for updating dispatch status
 // + fix panic on httpapi Content-Type set
+// - errors refactor; added telegram errors
+// - update status code in httpRequest struct after successfull operation; refactor with new changes
 
 
 var (

@@ -17,6 +17,12 @@ type tgrmJob struct {
 	status_code uint8
 }
 
+const (
+	tgJobStatusPending = uint8(iota)
+	tgJobStatusFailed
+	tgJobStatusSended
+)
+
 func (m *tgrmJob) setUserModel(u *userModel) *tgrmJob { m.um = u; return m }
 func (m *tgrmJob) queueUp() { globTgDispatcher.getQueueChan() <-m }
 
@@ -38,6 +44,16 @@ func (m *tgrmJob) save() *tgrmJob {
 		m.um.handleError(e, errInternalSqlError, "Could not write job!"); return nil }
 
 	return m
+}
+
+func (m *tgrmJob) statusUpdate(jobStatus uint8) {
+	stmt,e := globSqlDB.Prepare("UPDATE dispatch_reports SET status_code = ? WHERE id = ?")
+	if e != nil { globLogger.Error().Err(e).Msg("[TG-QUEUE]: Could not update job status!"); return } // TODO: added telegram errors with save in mysql
+	defer stmt.Close()
+
+	if _,e := stmt.Exec(jobStatus, m.id); e != nil {
+		globLogger.Error().Err(e).Msg("Could not update job status!")
+		return } // TODO: added telegram errors with save in mysql
 }
 
 
@@ -116,7 +132,5 @@ LOOP:
 	}
 }
 
-func (m *tgrmWorker) doJob(j *tgrmJob) {
-	globTgApi.sendMessage(j.user.chatId, j.message)
-}
+func (m *tgrmWorker) doJob(j *tgrmJob) { globTgApi.sendMessage(j) }
 

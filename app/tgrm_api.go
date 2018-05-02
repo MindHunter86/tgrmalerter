@@ -45,7 +45,8 @@ func (m *tgrmApi) registerContact(chatId int64, formId int, contact *tgbotapi.Co
 		globLogger.Error().Err(e).Msg("[TG-API]: Could not send message!") }
 }
 
-func (m *tgrmApi) sendMessage(chId int64, message string) {
-	if _,e := m.Send(tgbotapi.NewMessage(chId, message)); e != nil {
-		globLogger.Error().Err(e).Msg("[TG-API]: Could not send message!") }
+func (m *tgrmApi) sendMessage(job *tgrmJob) {
+	if _,e := m.Send(tgbotapi.NewMessage(job.user.chatId, job.message)); e != nil {
+		globLogger.Error().Err(e).Msg("[TG-API]: Could not send message!"); return }
+	job.statusUpdate(tgJobStatusSended)
 }
