@@ -128,11 +128,17 @@ func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 	e = json.Unmarshal(reqBody, &postRequest); if !m.errorHandler(w,e,req) { return }
 
 	switch {
-	case postRequest.Data == nil,
-		postRequest.Data.Type == "",
-		postRequest.Data.Attributes == nil,
-		postRequest.Data.Attributes.Alert == "",
-		postRequest.Data.Attributes.Phone == "":
+	case postRequest.Data == nil:
+		fallthrough
+	case postRequest.Data.Type == "":
+		fallthrough
+	case postRequest.Data.Attributes == nil:
+		fallthrough
+	case postRequest.Data.Attributes.Alert == "":
+		fallthrough
+	case postRequest.Data.Attributes.Phone == "":
+		fallthrough
+	case false: // something impossible
 			req.newError(errAlertsUnknownApiFormat)
 			m.respondJSON(w, req, nil, 0); return
 	default:
