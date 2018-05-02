@@ -139,8 +139,8 @@ func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 	case postRequest.Data.Attributes.Phone == "":
 		fallthrough
 	case false: // something impossible
-			req.newError(errAlertsUnknownApiFormat)
-			m.respondJSON(w, req, nil, 0); return
+		req.newError(errAlertsUnknownApiFormat)
+		m.respondJSON(w, req, nil, 0); return
 	default:
 		globLogger.Debug().Msg("[API]: data checker is OK!")
 	}
