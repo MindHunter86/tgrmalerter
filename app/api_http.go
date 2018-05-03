@@ -17,6 +17,10 @@ type (
 	apiResponse struct {
 		Data *responseData          `json:"data,omitempty"`
 		Errors []*responseError     `json:"errors,omitempty"`
+		Meta *responseMeta          `json:"meta,omitempty"`
+		JsonApi *responseJsonApi    `json:"jsonapi,omitempty"`
+		Links *responseLinks        `json:"links,omitempty"`
+		Debug *responseDebug        `json:"debug,omitempty"`
 	}
 	responseData struct {
 		Type string                 `json:"type,omitempty"`
@@ -52,6 +56,28 @@ type (
 	requestData struct {
 		Type string                 `json:"type"`
 		Attributes *dataAttributes  `json:"attributes"`
+	}
+
+	// JSON meta information
+	responseMeta struct {
+		ApiVersion string          `json:"api_version"`
+		Copyright string            `json:"copyright"`
+		Authors []string            `json:"authors"`
+	}
+
+	// JSON links:
+	responseLinks struct {
+		Self string                 `json:"self"`
+	}
+
+	// JSON standart version:
+	responseJsonApi struct {
+		Version string              `json:"version"`
+	}
+
+	// JSON debug:
+	responseDebug struct {
+		RequestId string           `json:"request_id,omitempty"`
 	}
 )
 
@@ -175,7 +201,21 @@ func (m *api) errorHandler(w http.ResponseWriter, e error, req *httpRequest) boo
 func (m *api) respondJSON(w http.ResponseWriter, req *httpRequest, payloadData *responseData, status int) {
 	//
 	var rspPayload = &apiResponse{
-		Data: payloadData }
+		Data: payloadData,
+		Meta: &responseMeta{
+			ApiVersion: appVersion,
+			Authors: []string{
+				"vadimka_kom" },
+			Copyright: "Copyright 2018 Mindhunter and CO." },
+		Links: &responseLinks{
+			Self: req.link },
+		JsonApi: &responseJsonApi{
+			Version: "1.0" },
+	}
+
+	if globLogger.Debug().Enabled() {
+		rspPayload.Debug = &responseDebug{
+			RequestId: req.id } }
 
 	if rspPayload.Errors,status = req.saveErrors().respondApiErrors(); req.status > status {
 		status = req.status

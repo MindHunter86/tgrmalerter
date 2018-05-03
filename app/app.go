@@ -24,6 +24,8 @@ import "github.com/go-telegram-bot-api/telegram-bot-api"
 // - update status code in httpRequest struct after successfull operation; refactor with new changes
 
 
+const appVersion = "1.0"
+
 var (
 	globSqlDB *sql.DB
 	globLogger *zerolog.Logger
