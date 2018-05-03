@@ -10,6 +10,7 @@ const (
 	errInternalSqlError
 	errAlertsNotAuthorized
 	errAlertsUnknownApiFormat
+	errAlertsUnknownType
 	errAlertsCreatePhoneLength
 	errAlertsCreatePhoneFormat
 	errAlertsCreatePhoneNotFound
@@ -26,6 +27,7 @@ var (
 		errInternalSqlError: "Internal database error",
 		errAlertsNotAuthorized: "Authorization failed",
 		errAlertsUnknownApiFormat: "Unknown API request format",
+		errAlertsUnknownType: "Unknown request type",
 		errAlertsCreatePhoneLength: "Abnormal phone parameter length",
 		errAlertsCreatePhoneFormat: "Abnormal phone parameter format",
 		errAlertsCreatePhoneNotFound: "Phone not found",
@@ -37,6 +39,7 @@ var (
 		errInternalSqlError: "The current request could not processed due to a database error. Please, try again later!",
 		errAlertsNotAuthorized: "The current request must be signed with a special key for correct authorization! Please, check your credentials!",
 		errAlertsUnknownApiFormat: "Could not parse request! Please read the documentation and try again!",
+		errAlertsUnknownType: "The current request has a type that was sent incorrectly!",
 		errAlertsCreatePhoneLength: "The phone must be between 10 and 12 characters in length!",
 		errAlertsCreatePhoneFormat: "The phone should star with +79 or 89 digits!",
 		errAlertsCreatePhoneNotFound: "The requested phone was not found in the database!",
@@ -48,6 +51,7 @@ var (
 		errInternalSqlError: http.StatusInternalServerError,
 		errAlertsNotAuthorized: http.StatusUnauthorized,
 		errAlertsUnknownApiFormat: http.StatusBadRequest,
+		errAlertsUnknownType: http.StatusBadRequest,
 		errAlertsCreatePhoneLength: http.StatusBadRequest,
 		errAlertsCreatePhoneFormat: http.StatusBadRequest,
 		errAlertsCreatePhoneNotFound: http.StatusNotFound,

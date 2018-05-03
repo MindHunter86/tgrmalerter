@@ -15,12 +15,12 @@ import "github.com/go-telegram-bot-api/telegram-bot-api"
 // -/+ add prefixes for logger
 // - check Content Type
 // - check Accept Header
-// - check type and link in the body of the request
+// -/+ check type and link in the body of the request
 // + refactor apiErrors and httpRequest (apiErrors must be as a part of httpRequest). Create api_request.go
 // + check api structs on NIL pointers
 // -/+ added method for updating dispatch status
 // + fix panic on httpapi Content-Type set
-// - errors refactor; added telegram errors
+// - errors refactor; add telegram errors
 // - update status code in httpRequest struct after successfull operation; refactor with new changes
 
 
@@ -54,11 +54,13 @@ func (m *App) Construct() (*App, error) {
 		workerDone: make(chan struct{}, 1) }
 	return m,nil
 }
+
 func (m *App) Bootstrap() error {
 	globTgDispatcher.bootstrap(
 		globConfig.Base.Telegram.Queue.Workers, globConfig.Base.Telegram.Queue.Worker_Capacity)
 	return nil
 }
+
 func (m *App) Destruct() error {
 	globTgDispatcher.destruct()
 	return nil
@@ -67,14 +69,15 @@ func (m *App) Destruct() error {
 func (m *App) TelegramUpdateHandler(up *tgbotapi.Update) {
 	globLogger.Debug().Str("message", up.Message.Text).Msg("[APP]: TelegramUpdateHandler has been triggered!")
 
-	if up.Message == nil {
-		globLogger.Warn().Int("update_id", up.UpdateID).Msg("[APP]: An empty message has been received!"); return }
-
-	if up.Message.IsCommand() {
+	switch {
+	case up.Message == nil:
+		globLogger.Warn().Int("update_id", up.UpdateID).Msg("[APP]: An empty message has been received!")
+		return
+	case up.Message.IsCommand():
 		globTgApi.commandRouter(up.Message)
-	} else if up.Message.Contact != nil {
+	case up.Message.Contact != nil:
 		globTgApi.registerContact(up.Message.Chat.ID, up.Message.From.ID, up.Message.Contact)
-	} else {
+	default:
 		globLogger.Debug().Str("msg", up.Message.Text).Str("author", up.Message.From.String()).Msg("[APP]: TelegramUpdateHandler: undefined message")
 	}
 }

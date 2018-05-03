@@ -141,6 +141,9 @@ func (m *api) httpHandlerAlertsCreate(w http.ResponseWriter, r *http.Request) {
 	case false: // something impossible
 		req.newError(errAlertsUnknownApiFormat)
 		m.respondJSON(w, req, nil, 0); return
+	case postRequest.Data.Type != "alerts":
+		req.newError(errAlertsUnknownType)
+		m.respondJSON(w, req, nil, 0); return
 	default:
 		globLogger.Debug().Msg("[API]: data checker is OK!")
 	}
