@@ -60,7 +60,7 @@ type (
 
 	// JSON meta information
 	responseMeta struct {
-		ApiVersion string          `json:"api_version"`
+		ApiVersion string           `json:"api_version"`
 		Copyright string            `json:"copyright"`
 		Authors []string            `json:"authors"`
 	}
